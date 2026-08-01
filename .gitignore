@@ -1,0 +1,71 @@
+# Local build output
+*.o
+*.a
+*.lo
+*.la
+*.so
+*.dylib
+*.dll
+*.exe
+*.elf
+*.self
+*.velf
+*.bin
+*.vpk
+
+# Autotools/configure output
+.deps/
+.libs/
+Makefile
+GNUmakefile
+Makefile.in
+aclocal.m4
+compile
+config.guess
+config.sub
+configure
+config.h
+config.h.in
+config.log
+config.status
+depcomp
+install-sh
+missing
+stamp-h1
+libtool
+autom4te.cache/
+AlephOne.spec
+
+# Local generated helper files/backups
+*~
+*.bak
+*.orig
+*.rej
+*.log
+*.
+
+# Vita packaging output
+pkg/
+build/
+Source_Files/alephone
+
+# Runtime/game data must not be committed to the engine repository
+Scenarios/
+data/Scenarios/
+Marathon/
+Marathon 2/
+Marathon Infinity/
+Map
+Shapes
+Images
+Sounds
+Music
+Physics
+Scripts/
+Plugins/
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

@@ -1,0 +1,126 @@
+# Building Aleph One for PS Vita
+
+These instructions describe the current WSL/Linux VitaSDK workflow used by this fork.
+
+## Requirements
+
+- WSL or Linux
+- VitaSDK installed
+- `arm-vita-eabi` toolchain in `PATH`
+- Vita packaging tools:
+  - `vita-elf-create`
+  - `vita-make-fself`
+  - `vita-mksfoex`
+  - `vita-pack-vpk`
+- Autotools:
+  - `autoconf`
+  - `automake`
+  - `libtool`
+
+Default expected VitaSDK path:
+
+```bash
+/usr/local/vitasdk
+```
+
+## Configure
+
+From a clean clone:
+
+```bash
+cd /path/to/alephone-vita
+export VITASDK=/usr/local/vitasdk
+export PATH="$VITASDK/bin:$PATH"
+
+autoreconf -fi
+
+PKG_CONFIG_LIBDIR="$VITASDK/arm-vita-eabi/lib/pkgconfig" \
+./configure \
+  --host=arm-vita-eabi \
+  --with-boost="$VITASDK/arm-vita-eabi" \
+  --disable-opengl \
+  --without-curl \
+  --without-zzip \
+  --without-sdl_image \
+  --without-png \
+  --without-miniupnpc \
+  --without-nfd \
+  --without-vpx \
+  --without-matroska \
+  --without-ebml \
+  --without-vorbis \
+  --without-vorbisenc \
+  --without-libyuv \
+  --without-catch2
+```
+
+## Build VPK
+
+```bash
+./build-vita-vpk.sh pkg
+```
+
+Outputs:
+
+```text
+pkg/alephone_vita.vpk
+pkg/eboot.bin
+```
+
+## Rebuild after source changes
+
+For normal development:
+
+```bash
+./build-vita-vpk.sh pkg
+```
+
+If changes are made inside static libraries and the final executable appears stale, force relinking:
+
+```bash
+rm -f Source_Files/alephone pkg/alephone.velf pkg/eboot.bin pkg/alephone_vita.vpk
+./build-vita-vpk.sh pkg
+```
+
+## Deploy to an installed Vita app
+
+If the VPK is already installed and VitaShell FTP is running, replace `VITA_IP` with your device address:
+
+```bash
+export VITA_IP=192.0.2.10
+
+curl --ftp-method nocwd \
+  -T pkg/eboot.bin \
+  "ftp://$VITA_IP:1337/ux0:/app/ALEPH0001/eboot.bin"
+```
+
+`192.0.2.10` is only an example placeholder.
+
+## Runtime data
+
+Install game data separately to:
+
+```text
+ux0:data/AlephOne/
+```
+
+At minimum, the selected scenario must provide:
+
+```text
+Map
+Shapes
+Images
+Sounds
+```
+
+Do not commit these files to this engine repository.
+
+## Release notes
+
+Before publishing a release build:
+
+- disable or make optional the FPS overlay;
+- disable or gate profiling log writes;
+- verify that no scenario data or generated binaries are included;
+- test launch from a fresh Vita install;
+- test with each Marathon Trilogy scenario layout separately.
