@@ -19,6 +19,13 @@ Playable real-hardware prototype.
 
 This is not yet a fully polished release. The project is currently under active development and testing.
 
+## Photos
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/9772bfdd-9632-428a-9b4e-769711993edb" width="48%" alt="Marathon 1 on PS Vita">
+  <img src="https://github.com/user-attachments/assets/11df0556-6d9f-490e-8062-7aac3798cf4d" width="48%" alt="Marathon 2 on PS Vita">
+</p>
+
 ## Controls
 
 Current Vita mapping:
