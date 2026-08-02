@@ -48,6 +48,9 @@ void reset_motion_sensor(short monster_index);
 void motion_sensor_scan(void);
 bool motion_sensor_has_changed(void);
 void adjust_motion_sensor_range(void);
+#ifdef VITA
+bool vita_update_m1_motion_sensor(bool force_redraw);
+#endif
 
 class InfoTree;
 void parse_mml_motion_sensor(const InfoTree& root);

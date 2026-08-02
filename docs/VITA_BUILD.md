@@ -57,13 +57,17 @@ PKG_CONFIG_LIBDIR="$VITASDK/arm-vita-eabi/lib/pkgconfig" \
 ## Build VPK
 
 ```bash
-./build-vita-vpk.sh pkg
+./build-vita-vpk.sh pkg marathon1
+./build-vita-vpk.sh pkg marathon2
+./build-vita-vpk.sh pkg infinity
 ```
 
 Outputs:
 
 ```text
-pkg/alephone_vita.vpk
+pkg/alephone_vita_marathon1.vpk
+pkg/alephone_vita_marathon2.vpk
+pkg/alephone_vita_infinity.vpk
 pkg/eboot.bin
 ```
 
@@ -72,15 +76,13 @@ pkg/eboot.bin
 For normal development:
 
 ```bash
-./build-vita-vpk.sh pkg
+./build-vita-vpk.sh pkg marathon1
 ```
 
-If changes are made inside static libraries and the final executable appears stale, force relinking:
+The script removes the previous final executable before linking so source
+changes inside static libraries are picked up by `pkg/eboot.bin`.
 
-```bash
-rm -f Source_Files/alephone pkg/alephone.velf pkg/eboot.bin pkg/alephone_vita.vpk
-./build-vita-vpk.sh pkg
-```
+Use the profile name that matches the installed Vita app.
 
 ## Deploy to an installed Vita app
 
@@ -96,12 +98,22 @@ curl --ftp-method nocwd \
 
 `192.0.2.10` is only an example placeholder.
 
-## Runtime data
-
-Install game data separately to:
+Profile TitleIDs:
 
 ```text
-ux0:data/AlephOne/
+marathon1  -> ALEPH0001
+marathon2  -> ALEPH0002
+infinity   -> ALEPH0003
+```
+
+## Runtime data
+
+Install game data separately to the matching profile directory:
+
+```text
+ux0:data/AlephOne/Marathon/
+ux0:data/AlephOne/Marathon2/
+ux0:data/AlephOne/MarathonInfinity/
 ```
 
 At minimum, the selected scenario must provide:
@@ -113,7 +125,8 @@ Images
 Sounds
 ```
 
-Do not commit these files to this engine repository.
+Do not commit these files to this engine repository. Use game data from a
+legally obtained copy or from a legal Aleph One scenario distribution.
 
 ## Release notes
 

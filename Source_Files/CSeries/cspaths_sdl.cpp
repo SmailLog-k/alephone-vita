@@ -26,6 +26,9 @@
 #ifdef HAVE_CONFIG_H
 #include "confpaths.h"
 #endif
+#ifdef VITA
+#include "../../VitaPlatform/vita_build_profile.h"
+#endif
 
 #if defined(__APPLE__) && defined(__MACH__)
 
@@ -176,9 +179,13 @@ static std::string _get_local_data_path()
 	static std::string local_dir = "";
 	if (local_dir.empty())
 	{
+#ifdef VITA
+		local_dir = A1_VITA_DATA_DIR;
+#else
 		const char *home = getenv("HOME");
 		if (home)
 			local_dir = std::string(home) + "/.alephone";
+#endif
 	}
 	return local_dir;
 }
@@ -187,6 +194,44 @@ std::string get_data_path(CSPathType type)
 {
 	std::string path = "";
 	
+#ifdef VITA
+	switch (type) {
+		case kPathLocalData:
+			path = A1_VITA_DATA_DIR;
+			break;
+		case kPathLogs:
+			path = A1_VITA_LOG_DIR;
+			break;
+		case kPathPreferences:
+			path = std::string(A1_VITA_DATA_DIR) + "/prefs";
+			break;
+		case kPathDefaultData:
+			path = A1_VITA_DATA_DIR;
+			break;
+		case kPathLegacyData:
+		case kPathBundleData:
+		case kPathLegacyPreferences:
+			// not applicable
+			break;
+		case kPathScreenshots:
+			path = std::string(A1_VITA_DATA_DIR) + "/Screenshots";
+			break;
+		case kPathSavedGames:
+			path = std::string(A1_VITA_DATA_DIR) + "/Saved Games";
+			break;
+		case kPathQuickSaves:
+			path = std::string(A1_VITA_DATA_DIR) + "/Quick Saves";
+			break;
+		case kPathImageCache:
+			path = std::string(A1_VITA_DATA_DIR) + "/Image Cache";
+			break;
+		case kPathRecordings:
+			path = std::string(A1_VITA_DATA_DIR) + "/Recordings";
+			break;
+	}
+	return path;
+#endif
+
 	switch (type) {
 		case kPathLocalData:
 		case kPathLogs:
@@ -234,4 +279,3 @@ std::string get_application_identifier()
 
 
 #endif
-

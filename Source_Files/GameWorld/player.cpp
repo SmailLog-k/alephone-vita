@@ -804,7 +804,19 @@ void update_players(ActionQueues* inActionQueuesToUse, bool inPredictive)
 				update_player_weapons(player_index, action_flags);
 				update_action_key(player_index, (action_flags&_action_trigger_state) ? true : false);
 				if (action_flags&_toggle_map)
+				{
+#ifdef VITA
+					static int32 vita_last_map_toggle_tick[MAXIMUM_NUMBER_OF_PLAYERS] = {};
+					const int32 now = dynamic_world->tick_count;
+					if (now - vita_last_map_toggle_tick[player_index] >= TICKS_PER_SECOND / 4)
+					{
+						SET_PLAYER_MAP_STATUS(player, !PLAYER_HAS_MAP_OPEN(player));
+						vita_last_map_toggle_tick[player_index] = now;
+					}
+#else
 					SET_PLAYER_MAP_STATUS(player, !PLAYER_HAS_MAP_OPEN(player));
+#endif
+				}
 
 				// ZZZ: moved this here out of "player becoming netdead" area above; that looked wrong
 				// AlexJLS patch: effect of dangerous polygons
@@ -2562,4 +2574,3 @@ void parse_mml_player(const InfoTree& root)
 		}
 	}
 }
-

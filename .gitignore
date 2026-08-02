@@ -48,6 +48,7 @@ AlephOne.spec
 pkg/
 build/
 Source_Files/alephone
+VitaPlatform/vita_build_profile.h
 
 # Runtime/game data must not be committed to the engine repository
 Scenarios/

@@ -201,7 +201,7 @@ void vita_alephone_apply_performance_preferences(void)
     graphics_preferences->screen_mode.auto_resolution = false;
     graphics_preferences->screen_mode.high_dpi = false;
     graphics_preferences->screen_mode.fullscreen = true;
-    graphics_preferences->screen_mode.hud = false;
+    graphics_preferences->screen_mode.hud = true;
     graphics_preferences->screen_mode.fix_h_not_v = true;
     graphics_preferences->screen_mode.translucent_map = false;
     graphics_preferences->screen_mode.bobbing_type = BobbingType::weapon_only;

@@ -55,14 +55,30 @@ bool HUD_Class::update_everything(short time_elapsed)
 
 	if (!LuaTexturePaletteSize())
 	{
-		if (!shapes_file_is_m1())
+		if (!shapes_file_is_m1()
+#ifdef VITA
+			|| true
+#endif
+		)
 		{
+#ifdef VITA
+			if (!shapes_file_is_m1())
+				update_motion_sensor(time_elapsed);
+#else
 			update_motion_sensor(time_elapsed);
+#endif
 			update_inventory_panel((time_elapsed == NONE) ? true : false);
 			update_weapon_panel((time_elapsed == NONE) ? true : false);
 			update_ammo_display((time_elapsed == NONE) ? true : false);
+#ifdef VITA
+			if (!shapes_file_is_m1()) {
+				update_suit_energy(time_elapsed);
+				update_suit_oxygen(time_elapsed);
+			}
+#else
 			update_suit_energy(time_elapsed);
 			update_suit_oxygen(time_elapsed);
+#endif
 
 			// Draw the message area if the player count is greater than one
 			if (dynamic_world->player_count > 1)

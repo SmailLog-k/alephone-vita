@@ -6,15 +6,17 @@ The goal of this fork is engine-only Vita support. Marathon game data is not inc
 
 ## Current status
 
-Playable prototype.
+Playable real-hardware prototype.
 
-- Marathon 1 starts on real PS Vita hardware.
+- Marathon 1 is playable on real PS Vita hardware.
+- Marathon 2 starts and is in active compatibility testing.
 - Software rendering is used; OpenGL/Lua HUD are disabled on Vita for performance.
 - Fullscreen 960x544 output works.
 - Performance target is 30 FPS. Current real-device testing is approximately 23-30 FPS depending on scene/HUD state.
 - Vita controls are mapped and playable.
-- A lightweight Vita HUD is implemented while the original Aleph One HUD is being adapted.
+- Classic scenario HUD rendering is being adapted for Vita. Marathon 1 HUD and Marathon 2 gameplay HUD are partially restored.
 - Networking and some desktop-only integrations are not part of the Vita target yet.
+- Known active issue: underwater/full-screen liquid effects can still reduce frame rate significantly on Vita.
 
 This is not a polished release. Treat it as an active porting branch for developers and testers.
 
@@ -36,17 +38,22 @@ Current Vita mapping:
 | D-pad | Weapon/inventory/map controls depending on game state |
 | Select | Scores |
 
-## Game data
+## Vita application profiles and game data
 
-This repository does not include Marathon data files.
+This repository does not include Marathon data files. The Vita port is built as
+one engine codebase with separate application profiles for each game. Each
+profile produces a different LiveArea bubble, TitleID, data directory,
+preferences directory, save directory, quick-save directory, and log directory.
 
-For the current Vita build, place a scenario under:
+Current profiles:
 
 ```text
-ux0:data/AlephOne/
+marathon1  -> TitleID ALEPH0001 -> ux0:data/AlephOne/Marathon/
+marathon2  -> TitleID ALEPH0002 -> ux0:data/AlephOne/Marathon2/
+infinity   -> TitleID ALEPH0003 -> ux0:data/AlephOne/MarathonInfinity/
 ```
 
-The scenario directory must contain the required Aleph One files such as:
+Each scenario directory must contain the required Aleph One files, for example:
 
 ```text
 Map
@@ -56,6 +63,20 @@ Sounds
 ```
 
 Depending on the scenario, additional files may be needed.
+
+Users should provide game data from a legally obtained copy or from a legal
+Aleph One scenario distribution. The engine repository may contain Vita-side
+compatibility fixes required to make that original data playable on PS Vita, but
+it should not contain commercial scenario resources.
+
+The intended release model is not "replace files manually to switch games".
+Instead, install separate VPKs and keep each game's data under its own
+`ux0:data/AlephOne/<Game>/` directory.
+
+Porting policy: fix problems in the Vita engine first whenever possible. Keep
+scenario-specific handling in the engine/profile layer only when the behavior is
+actually tied to a specific Marathon scenario. Do not patch game data unless the
+problem is proven to be a resource/scenario issue.
 
 ## Vita build quick start
 
@@ -95,20 +116,27 @@ PKG_CONFIG_LIBDIR="$VITASDK/arm-vita-eabi/lib/pkgconfig" \
   --without-libyuv \
   --without-catch2
 
-./build-vita-vpk.sh pkg
+./build-vita-vpk.sh pkg marathon1
+./build-vita-vpk.sh pkg marathon2
+./build-vita-vpk.sh pkg infinity
 ```
 
-The build output is written to:
+The build outputs are written to:
 
 ```text
-pkg/alephone_vita.vpk
+pkg/alephone_vita_marathon1.vpk
+pkg/alephone_vita_marathon2.vpk
+pkg/alephone_vita_infinity.vpk
 pkg/eboot.bin
 ```
 
-For iterative testing on an already-installed app, upload only `pkg/eboot.bin` to:
+For iterative testing on an already-installed app, upload only `pkg/eboot.bin`
+to the matching TitleID:
 
 ```text
-ux0:/app/ALEPH0001/eboot.bin
+Marathon 1:        ux0:/app/ALEPH0001/eboot.bin
+Marathon 2:        ux0:/app/ALEPH0002/eboot.bin
+Marathon Infinity: ux0:/app/ALEPH0003/eboot.bin
 ```
 
 ## Development notes

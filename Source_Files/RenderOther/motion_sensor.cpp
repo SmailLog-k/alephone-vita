@@ -52,6 +52,10 @@ Sep 2, 2000 (Loren Petrich):
 #include "HUDRenderer_OGL.h"
 #include "HUDRenderer_Lua.h"
 
+#ifdef VITA
+#include "screen.h"
+#endif
+
 #include <math.h>
 #include <string.h>
 #include <stdlib.h>
@@ -371,6 +375,82 @@ bool motion_sensor_has_changed(void)
 	motion_sensor_changed = false;
 	return changed;
 }
+
+#ifdef VITA
+extern SDL_Surface *HUD_Buffer;
+extern bool shapes_file_is_m1();
+
+bool vita_update_m1_motion_sensor(bool force_redraw)
+{
+	if (!HUD_Buffer || !current_player || !shapes_file_is_m1())
+		return false;
+	if ((GET_GAME_OPTIONS() & _motion_sensor_does_not_work) || !MotionSensorActive)
+		return false;
+
+	const bool changed = motion_sensor_has_changed();
+	if (!force_redraw && !changed)
+		return false;
+
+	const int center_x = 91;
+	const int center_y = 374;
+	const int radius = 62;
+	const uint32 black = SDL_MapRGB(HUD_Buffer->format, 0x00, 0x00, 0x00);
+	const uint32 grid = SDL_MapRGB(HUD_Buffer->format, 0x00, 0x46, 0x00);
+	const uint32 center = SDL_MapRGB(HUD_Buffer->format, 0x00, 0x70, 0x00);
+
+	for (int y = -radius; y <= radius; ++y) {
+		const int dx = static_cast<int>(sqrt(static_cast<double>(radius * radius - y * y)));
+		SDL_Rect line = { center_x - dx, center_y + y, dx * 2 + 1, 1 };
+		SDL_FillRect(HUD_Buffer, &line, black);
+	}
+
+	for (int x = center_x - 40; x <= center_x + 40; x += 20) {
+		const int rel_x = x - center_x;
+		const int half_h = static_cast<int>(sqrt(static_cast<double>(radius * radius - rel_x * rel_x)));
+		SDL_Rect line = { x, center_y - half_h, 1, half_h * 2 + 1 };
+		SDL_FillRect(HUD_Buffer, &line, grid);
+	}
+	for (int y = center_y - 40; y <= center_y + 40; y += 20) {
+		const int rel_y = y - center_y;
+		const int half_w = static_cast<int>(sqrt(static_cast<double>(radius * radius - rel_y * rel_y)));
+		SDL_Rect line = { center_x - half_w, y, half_w * 2 + 1, 1 };
+		SDL_FillRect(HUD_Buffer, &line, grid);
+	}
+
+	SDL_Rect center_dot = { center_x - 4, center_y - 4, 8, 8 };
+	SDL_FillRect(HUD_Buffer, &center_dot, center);
+
+	for (int intensity = 1; intensity >= 0; --intensity) {
+		for (int entity_index = 0; entity_index < MAXIMUM_MOTION_SENSOR_ENTITIES; ++entity_index) {
+			entity_data *entity = entities + entity_index;
+			if (!SLOT_IS_USED(entity) || !entity->visible_flags[intensity])
+				continue;
+
+			const int x = center_x + entity->previous_points[intensity].x;
+			const int y = center_y + entity->previous_points[intensity].y;
+			const int rel_x = x - center_x;
+			const int rel_y = y - center_y;
+			if (rel_x * rel_x + rel_y * rel_y > radius * radius)
+				continue;
+
+			uint8 brightness = intensity == 0 ? 0xff : 0x60;
+			uint32 color;
+			if (entity->shape == friendly_shapes)
+				color = SDL_MapRGB(HUD_Buffer->format, 0x00, brightness, 0xff);
+			else if (entity->shape == enemy_shapes)
+				color = SDL_MapRGB(HUD_Buffer->format, 0xff, brightness / 3, 0x00);
+			else
+				color = SDL_MapRGB(HUD_Buffer->format, 0xff, brightness / 3, 0x00);
+
+			const int size = intensity == 0 ? 5 : 3;
+			SDL_Rect blip = { x - size / 2, y - size / 2, size, size };
+			SDL_FillRect(HUD_Buffer, &blip, color);
+		}
+	}
+
+	return true;
+}
+#endif
 
 /* toggle through the ranges */
 void adjust_motion_sensor_range(void)

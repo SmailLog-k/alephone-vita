@@ -24,6 +24,10 @@
 
 #define SDL_MAIN_HANDLED
 
+#ifdef VITA
+#include "vita_build_profile.h"
+#endif
+
 #define A1_HOMEPAGE_URL "https://alephone.lhowon.org/"
 
 #define PATH_LIST_SEPARATOR ':'

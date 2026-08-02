@@ -62,6 +62,9 @@
 #include "network.h"
 #include "images.h"
 #include "motion_sensor.h"
+#ifdef VITA
+#include "../../VitaPlatform/vita_build_profile.h"
+#endif
 #include "Logging.h"
 
 #include "sdl_fonts.h"
@@ -76,6 +79,7 @@
 
 #ifdef VITA
 #include <psp2/kernel/processmgr.h>
+extern void vita_draw_main_menu_present_overlay(void);
 #endif
 
 #if defined(__WIN32__) || (defined(__MACH__) && defined(__APPLE__))
@@ -157,7 +161,7 @@ static void vita_perf_maybe_log()
 	if (++vita_perf_frames < 120)
 		return;
 
-	FILE *file = fopen("ux0:data/AlephOne/logs/vita_perf.log", "a");
+	FILE *file = fopen(A1_VITA_LOG_DIR "/vita_perf.log", "a");
 	if (file) {
 		fprintf(file,
 			"frames=%u avg_us frame=%llu render_view=%llu overlay=%llu blit_hud=%llu update_screen=%llu draw_surface=%llu darken=%llu present=%llu present_calls=%u dims world=%dx%dx%d main=%dx%dx%d\n",
@@ -456,10 +460,28 @@ SDL_Rect Screen::view_rect()
 #ifdef VITA
 	else
 	{
-		r.x = (width() - window_width()) / 2;
-		r.y = (height() - window_height()) / 2;
-		r.w = window_width();
-		r.h = window_height();
+#if A1_VITA_M1_COCKPIT
+		const int cockpit_w = (640 * height() + 240) / 480;
+		const int cockpit_x = (width() - cockpit_w) / 2;
+		r.x = cockpit_x + (176 * height() + 240) / 480;
+		r.y = (23 * height() + 240) / 480;
+		r.w = (448 * height() + 240) / 480;
+		r.h = (272 * height() + 240) / 480;
+#else
+		int available_height = window_height() - hud_rect().h;
+		if (window_width() > available_height * 2)
+		{
+			r.w = available_height * 2;
+			r.h = available_height;
+		}
+		else
+		{
+			r.w = window_width();
+			r.h = window_width() / 2;
+		}
+		r.x = (width() - r.w) / 2;
+		r.y = (height() - window_height()) / 2 + (available_height - r.h) / 2;
+#endif
 	}
 #else
 	else
@@ -512,6 +534,14 @@ SDL_Rect Screen::map_rect()
 	if (map_is_translucent())
 		return view_rect();
 	
+#ifdef VITA
+	r.x = 0;
+	r.y = 0;
+	r.w = width();
+	r.h = height();
+	return r;
+#endif
+
 	r.w = window_width();
 	r.h = window_height();
 	if (hud()) 
@@ -525,6 +555,10 @@ SDL_Rect Screen::map_rect()
 
 SDL_Rect Screen::term_rect()
 {
+#ifdef VITA
+	SDL_Rect vita_term = { 0, 0, width(), height() };
+	return vita_term;
+#endif
 	int wh = window_height();
 	int ww = window_width();
 	int wx = (width() - ww)/2;
@@ -569,6 +603,20 @@ SDL_Rect Screen::hud_rect()
 {
 	SDL_Rect r;
 	r.w = 640;
+#ifdef VITA
+	r.h = height();
+#if A1_VITA_M1_COCKPIT
+	r.w = (640 * r.h + 240) / 480;
+	r.x = (width() - r.w) / 2;
+	r.y = 0;
+#else
+	r.w = window_width();
+	r.h = r.w / 4;
+	r.x = (width() - r.w) / 2;
+	r.y = window_height() - r.h + (height() - window_height()) / 2;
+#endif
+	return r;
+#endif
 	switch (screen_mode.hud_scale_level)
 	{
 		case 1:
@@ -743,7 +791,11 @@ void ReloadViewContext(void)
 
 bool map_is_translucent(void)
 {
+#ifdef VITA
+	return false;
+#else
 	return (screen_mode.translucent_map && NetAllowOverlayMap());
+#endif
 }
 
 /*
@@ -1186,7 +1238,11 @@ static void change_screen_mode(int width, int height, int depth, bool nogl, bool
 	}
 
     screen_rectangle *term_rect = get_interface_rectangle(_terminal_screen_rect);
+#ifdef VITA
+	Term_Buffer = SDL_CreateRGBSurface(SDL_SWSURFACE, 640, 480, 32, pixel_format_32.Rmask, pixel_format_32.Gmask, pixel_format_32.Bmask, 0);
+#else
 	Term_Buffer = SDL_CreateRGBSurface(SDL_SWSURFACE, RECTANGLE_WIDTH(term_rect), RECTANGLE_HEIGHT(term_rect), 32, pixel_format_32.Rmask, pixel_format_32.Gmask, pixel_format_32.Bmask, pixel_format_32.Amask);
+#endif
 
 #ifdef HAVE_OPENGL
 	if (!nogl && screen_mode.acceleration != _no_acceleration) {
@@ -1325,6 +1381,68 @@ static bool clear_next_screen = false;
 static void darken_world_window(void);
 
 #ifdef VITA
+extern void draw_panels(void);
+extern void ensure_HUD_buffer(void);
+
+static SDL_Rect vita_m1_cockpit_rect()
+{
+	const int cockpit_h = main_surface->h;
+	const int cockpit_w = (640 * cockpit_h + 240) / 480;
+	SDL_Rect r = { (main_surface->w - cockpit_w) / 2, 0, cockpit_w, cockpit_h };
+	return r;
+}
+
+static void vita_draw_m1_cockpit_background()
+{
+	static SDL_Surface *cockpit = NULL;
+	static SDL_Surface *cockpit_scaled = NULL;
+	static SDL_Surface *hud_scaled = NULL;
+	static bool cockpit_loaded = false;
+	SDL_Rect dst = vita_m1_cockpit_rect();
+
+	if (!cockpit_loaded) {
+		LoadedResource rsrc;
+		if (get_picture_resource_from_images(128, rsrc)) {
+			auto surface = picture_to_surface(rsrc);
+			cockpit = surface.release();
+			if (cockpit)
+				SDL_SetSurfaceBlendMode(cockpit, SDL_BLENDMODE_NONE);
+		}
+		cockpit_loaded = true;
+	}
+
+	if (HUD_RenderRequest && HUD_Buffer) {
+		if (hud_scaled) {
+			SDL_FreeSurface(hud_scaled);
+			hud_scaled = NULL;
+		}
+		hud_scaled = rescale_surface(HUD_Buffer, dst.w, dst.h);
+		if (hud_scaled)
+			SDL_SetSurfaceBlendMode(hud_scaled, SDL_BLENDMODE_NONE);
+	}
+
+	if (!hud_scaled && cockpit) {
+		if (!cockpit_scaled ||
+			cockpit_scaled->w != dst.w ||
+			cockpit_scaled->h != dst.h) {
+			if (cockpit_scaled) {
+				SDL_FreeSurface(cockpit_scaled);
+				cockpit_scaled = NULL;
+			}
+			cockpit_scaled = rescale_surface(cockpit, dst.w, dst.h);
+			if (cockpit_scaled)
+				SDL_SetSurfaceBlendMode(cockpit_scaled, SDL_BLENDMODE_NONE);
+		}
+	}
+
+	SDL_Surface *src_surface = hud_scaled ? hud_scaled : cockpit_scaled;
+	if (!src_surface)
+		return;
+
+	SDL_Rect src = { 0, 0, src_surface->w, src_surface->h };
+	SDL_BlitSurface(src_surface, &src, main_surface, &dst);
+}
+
 static void vita_draw_minimal_hud(SDL_Surface *s)
 {
 	if (!s || !current_player || world_view->terminal_mode_active || world_view->overhead_map_active)
@@ -1439,6 +1557,7 @@ void update_world_view_camera()
 }
 
 extern bool is_network_pregame;
+void render_overhead_map(struct view_data *view);
 
 void render_screen(short ticks_elapsed)
 {
@@ -1564,11 +1683,19 @@ void render_screen(short ticks_elapsed)
 
 	bool update_full_screen = false;
 	if (ViewChangedSize || MapChangedSize || SwitchedModes) {
+#ifdef VITA
+		SDL_FillRect(main_surface, NULL, SDL_MapRGB(main_surface->format, 0, 0, 0));
+#endif
 		clear_screen_margin();
 		if (!OGL_IsActive() && DrawEveryOtherLine)
 			clear_screen();
 		update_full_screen = true;
-		if (Screen::instance()->hud() && !Screen::instance()->lua_hud() && !is_network_pregame)
+		if (Screen::instance()->hud() && !Screen::instance()->lua_hud() && !is_network_pregame
+#ifdef VITA
+			&& !world_view->overhead_map_active
+			&& !world_view->terminal_mode_active
+#endif
+		)
 			draw_interface();
 
 		// Reallocate the drawing buffer
@@ -1583,13 +1710,64 @@ void render_screen(short ticks_elapsed)
 	{
 		clear_screen(false);
 		update_full_screen = true;
-		if (Screen::instance()->hud() && !Screen::instance()->lua_hud() && !is_network_pregame)
+		if (Screen::instance()->hud() && !Screen::instance()->lua_hud() && !is_network_pregame
+#ifdef VITA
+			&& !world_view->overhead_map_active
+			&& !world_view->terminal_mode_active
+#endif
+		)
 			draw_interface();
 
 		clear_next_screen = false;
 	}
 
 	interpolate_world_view(heartbeat_fraction);
+
+#ifdef VITA
+	if (world_view->overhead_map_active && !world_view->terminal_mode_active && !MapIsTranslucent)
+	{
+		if (!Map_Buffer)
+			reallocate_map_pixels(MapRect.w, MapRect.h);
+
+		render_overhead_map(world_view);
+		SDL_FillRect(main_surface, NULL, SDL_MapRGB(main_surface->format, 0, 0, 0));
+
+		SDL_Rect src_rect = { 0, 0, MapRect.w, MapRect.h };
+		SDL_BlitSurface(Map_Buffer, &src_rect, main_surface, &MapRect);
+
+		if (Screen::instance()->hud() && !Screen::instance()->lua_hud() && HUD_Buffer)
+		{
+#if A1_VITA_M1_COCKPIT
+			vita_draw_m1_cockpit_background();
+#else
+			SDL_SetSurfaceBlendMode(HUD_Buffer, SDL_BLENDMODE_NONE);
+			SDL_Rect hud_src_rect = { 0, 320, 640, 160 };
+			SDL_Surface *hud_slice = SDL_CreateRGBSurface(SDL_SWSURFACE, hud_src_rect.w, hud_src_rect.h,
+				HUD_Buffer->format->BitsPerPixel, HUD_Buffer->format->Rmask, HUD_Buffer->format->Gmask, HUD_Buffer->format->Bmask, 0);
+			if (hud_slice)
+			{
+				SDL_SetSurfaceBlendMode(hud_slice, SDL_BLENDMODE_NONE);
+				SDL_Rect hud_slice_dst = { 0, 0, hud_src_rect.w, hud_src_rect.h };
+				SDL_BlitSurface(HUD_Buffer, &hud_src_rect, hud_slice, &hud_slice_dst);
+				SDL_Surface *hud_scaled = rescale_surface(hud_slice, HUD_DestRect.w, HUD_DestRect.h);
+				if (hud_scaled)
+				{
+					SDL_SetSurfaceBlendMode(hud_scaled, SDL_BLENDMODE_NONE);
+					SDL_Rect hud_scaled_src = { 0, 0, hud_scaled->w, hud_scaled->h };
+					SDL_BlitSurface(hud_scaled, &hud_scaled_src, main_surface, &HUD_DestRect);
+					SDL_FreeSurface(hud_scaled);
+				}
+				SDL_FreeSurface(hud_slice);
+			}
+#endif
+			HUD_RenderRequest = false;
+		}
+
+		MainScreenUpdateRect(0, 0, 0, 0);
+		vita_perf_blit_total += vita_perf_now_us() - vita_frame_start_us;
+		return;
+	}
+#endif
 
 #ifdef HAVE_OPENGL
 	// Is map to be drawn with OpenGL?
@@ -1671,7 +1849,11 @@ void render_screen(short ticks_elapsed)
 	vita_section_start_us = vita_perf_now_us();
 #endif
 	// Display FPS and position
-	if (!world_view->terminal_mode_active) {
+	if (!world_view->terminal_mode_active
+#ifdef VITA
+		&& !world_view->overhead_map_active
+#endif
+	) {
 	  extern bool chat_input_mode;
 	  if (!chat_input_mode){
 		update_fps_display(disp_pixels);
@@ -1679,10 +1861,15 @@ void render_screen(short ticks_elapsed)
 	  DisplayPosition(disp_pixels);
 	  DisplayScores(disp_pixels);
 	}
-	DisplayMessages(disp_pixels);
-	DisplayInputLine(disp_pixels);
 #ifdef VITA
-	vita_draw_minimal_hud(disp_pixels);
+	if (!world_view->overhead_map_active)
+#endif
+	{
+		DisplayMessages(disp_pixels);
+		DisplayInputLine(disp_pixels);
+	}
+#ifdef VITA
+	// Hide the lightweight HUD while testing the original Marathon 1 HUD art.
 #endif
 #ifdef VITA
 	vita_perf_overlay_total += vita_perf_now_us() - vita_section_start_us;
@@ -1726,6 +1913,16 @@ void render_screen(short ticks_elapsed)
 		vita_section_start_us = vita_perf_now_us();
 #endif
 		// Update world window
+#ifdef VITA
+		if (Screen::instance()->hud() &&
+			!world_view->terminal_mode_active &&
+			!world_view->overhead_map_active
+#if !A1_VITA_M1_COCKPIT
+			&& false
+#endif
+		)
+			vita_draw_m1_cockpit_background();
+#endif
 		if (!world_view->terminal_mode_active &&
 			(!world_view->overhead_map_active || MapIsTranslucent))
 			update_screen(BufferRect, ViewRect, HighResolution, DrawEveryOtherLine);
@@ -1733,24 +1930,61 @@ void render_screen(short ticks_elapsed)
 		// Update map
 		if (world_view->overhead_map_active) {
 			SDL_Rect src_rect = { 0, 0, MapRect.w, MapRect.h };
+#ifdef VITA
+			if (!MapIsTranslucent)
+				SDL_FillRect(main_surface, NULL, SDL_MapRGB(main_surface->format, 0, 0, 0));
+#endif
 			DrawSurface(Map_Buffer, MapRect, src_rect);
 		}
 		
 		// Update HUD
+#ifdef VITA
+		bool vita_classic_hud_updated = false;
+#endif
 		if (Screen::instance()->lua_hud())
 		{
 			Lua_DrawHUD(ticks_elapsed);
 		}
-		else if (HUD_RenderRequest) {
+#ifdef VITA
+		else if (!Screen::instance()->hud()) {
+			HUD_RenderRequest = false;
+		}
+#endif
+#ifdef VITA
+		else if (Screen::instance()->hud() &&
+				 !world_view->terminal_mode_active &&
+				 !world_view->overhead_map_active
+#if !A1_VITA_M1_COCKPIT
+				 && false
+#endif
+		) {
+			HUD_RenderRequest = false;
+		}
+#endif
+		else if (HUD_RenderRequest
+#ifdef VITA
+				 || false
+#endif
+		) {
 			SDL_Rect src_rect = { 0, 320, 640, 160 };
+		#ifdef VITA
+			SDL_SetSurfaceBlendMode(HUD_Buffer, SDL_BLENDMODE_NONE);
+		#endif
 			DrawSurface(HUD_Buffer, HUD_DestRect, src_rect);
 			HUD_RenderRequest = false;
+#ifdef VITA
+			vita_classic_hud_updated = true;
+#endif
 		}
 
 		// Update terminal
 		if (world_view->terminal_mode_active) {
 			if (Term_RenderRequest || Screen::instance()->lua_hud()) {
 				SDL_Rect src_rect = { 0, 0, Term_Buffer->w, Term_Buffer->h };
+#ifdef VITA
+				SDL_FillRect(main_surface, NULL, SDL_MapRGB(main_surface->format, 0, 0, 0));
+				SDL_SetSurfaceBlendMode(Term_Buffer, SDL_BLENDMODE_NONE);
+#endif
 				DrawSurface(Term_Buffer, TermRect, src_rect);
 				Term_RenderRequest = false;
 			}
@@ -1765,9 +1999,34 @@ void render_screen(short ticks_elapsed)
 		{
 			MainScreenUpdateRect(0, 0, 0, 0);
 		}
+		else if (world_view->overhead_map_active && !MapIsTranslucent)
+		{
+#ifdef VITA
+			MainScreenUpdateRect(0, 0, 0, 0);
+#else
+			MainScreenUpdateRects(1, &MapRect);
+#endif
+		}
+		else if (world_view->terminal_mode_active)
+		{
+			MainScreenUpdateRects(1, &TermRect);
+		}
 		else if ((!world_view->overhead_map_active || MapIsTranslucent) &&
 				 !world_view->terminal_mode_active)
 		{
+#ifdef VITA
+			if (vita_classic_hud_updated) {
+				SDL_Rect update_rects[2] = { ViewRect, HUD_DestRect };
+				MainScreenUpdateRects(2, update_rects);
+			} else if (Screen::instance()->hud()
+#if !A1_VITA_M1_COCKPIT
+				&& false
+#endif
+			) {
+				SDL_Rect cockpit_rect = vita_m1_cockpit_rect();
+				MainScreenUpdateRects(1, &cockpit_rect);
+			} else
+#endif
 			MainScreenUpdateRects(1, &ViewRect);
 		}
 #ifdef VITA
@@ -2091,6 +2350,10 @@ void assert_world_color_table(struct color_table *interface_color_table, struct 
 
 void render_computer_interface(struct view_data *view)
 {
+#ifdef VITA
+	if (Term_Buffer)
+		SDL_FillRect(Term_Buffer, NULL, SDL_MapRGB(Term_Buffer->format, 0, 0, 0));
+#endif
 	_set_port_to_term();
 	_render_computer_interface();
 	_restore_port();
@@ -2391,7 +2654,12 @@ void clear_screen_margin()
 
 	dr.x -= wr.x;
 	dr.y -= wr.y;
-	if (Screen::instance()->hud() && !Screen::instance()->lua_hud())
+	if (Screen::instance()->hud() && !Screen::instance()->lua_hud()
+#ifdef VITA
+		&& !(world_view->overhead_map_active && !map_is_translucent())
+		&& !world_view->terminal_mode_active
+#endif
+	)
 		wr.h -= Screen::instance()->hud_rect().h;
 	
     if (dr.x > 0)
@@ -2522,6 +2790,8 @@ void MainScreenUpdateRects(size_t count, const SDL_Rect *rects)
 #ifdef VITA
 	bool updated_any_rect = false;
 	SDL_Rect surface_bounds = { 0, 0, main_surface->w, main_surface->h };
+	vita_draw_main_menu_present_overlay();
+	update_full_texture = true;
 
 	if (!update_full_texture) {
 		for (size_t i = 0; i < count; ++i) {

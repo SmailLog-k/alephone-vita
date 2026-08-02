@@ -2605,6 +2605,43 @@ static short calculate_lines_per_page(
 
 static Rect get_term_rectangle(short index)
 {
+#ifdef VITA
+	Rect bounds;
+	switch (index)
+	{
+		case _terminal_screen_rect:
+			bounds = { 0, 0, 480, 640 };
+			break;
+		case _terminal_header_rect:
+			bounds = { 0, 0, 18, 640 };
+			break;
+		case _terminal_footer_rect:
+			bounds = { 462, 0, 480, 640 };
+			break;
+		case _terminal_full_text_rect:
+			bounds = { 27, 8, 453, 632 };
+			break;
+		case _terminal_left_rect:
+			bounds = { 27, 8, 453, 316 };
+			break;
+		case _terminal_right_rect:
+			bounds = { 27, 324, 453, 632 };
+			break;
+		case _terminal_logon_graphic_rect:
+			bounds = { 27, 8, 453, 632 };
+			break;
+		case _terminal_logon_title_rect:
+			bounds = { 110, 8, 160, 632 };
+			break;
+		case _terminal_logon_location_rect:
+			bounds = { 170, 8, 220, 632 };
+			break;
+		default:
+			bounds = { 0, 0, 0, 0 };
+			break;
+	}
+	return bounds;
+#else
     Rect bounds;
     screen_rectangle *term_rect = get_interface_rectangle(_terminal_screen_rect);
     screen_rectangle *target_rect = get_interface_rectangle(index);
@@ -2613,6 +2650,7 @@ static Rect get_term_rectangle(short index)
     bounds.right = target_rect->right - term_rect->left;
     bounds.bottom = target_rect->bottom - term_rect->top;
     return bounds;
+#endif
 }
 
 

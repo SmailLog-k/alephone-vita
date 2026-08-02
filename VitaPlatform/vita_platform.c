@@ -1,4 +1,5 @@
 #include "vita_platform.h"
+#include "vita_alephone_config.h"
 #include <psp2/io/fcntl.h>
 #include <psp2/io/stat.h>
 #include <psp2/ctrl.h>
@@ -35,7 +36,7 @@ void vita_platform_log(const char* message)
 
 void vita_platform_init(void)
 {
-    snprintf(g_data_path, sizeof(g_data_path), "ux0:data/AlephOne/");
+    snprintf(g_data_path, sizeof(g_data_path), "%s/", A1_VITA_DATA_DIR);
     snprintf(g_save_path, sizeof(g_save_path), "%ssaves/", g_data_path);
     snprintf(g_prefs_path, sizeof(g_prefs_path), "%sprefs/", g_data_path);
 

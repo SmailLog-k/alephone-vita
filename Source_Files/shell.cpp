@@ -389,7 +389,7 @@ void initialize_application(void)
 	// Find data directories, construct search path
 	InitDefaultStringSets();
 	
-#ifndef SCENARIO_IS_BUNDLED
+#if !defined(SCENARIO_IS_BUNDLED) || defined(VITA)
 	default_data_dir = get_data_path(kPathDefaultData);
 #endif
 	

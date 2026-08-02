@@ -333,6 +333,11 @@ extern bool choose_saved_game_to_load(FileSpecifier& File);
 static void display_credits(void);
 static void draw_button(short index, bool pressed);
 static void draw_powered_by_aleph_one(bool pressed);
+#ifdef VITA
+static void vita_draw_menu_selection_label(short menu_item);
+static void vita_draw_menu_selection_final_overlay(short menu_item);
+void vita_draw_main_menu_present_overlay(void);
+#endif
 static void handle_replay(bool last_replay);
 static bool begin_game(short user, bool cheat);
 static void start_game(short user, bool changing_level);
@@ -987,6 +992,13 @@ void resume_game(
 void draw_menu_button_for_command(
 	short index)
 {
+#ifdef VITA
+	update_interface_display();
+	vita_draw_menu_selection_final_overlay(index);
+	sleep_for_machine_ticks(MACHINE_TICKS_PER_SECOND / 18);
+	return;
+#endif
+
 	short rectangle_index= index-1+START_OF_MENU_INTERFACE_RECTS;
 
 	assert(get_game_state()==_display_main_menu);
@@ -997,6 +1009,13 @@ void draw_menu_button_for_command(
 	sleep_for_machine_ticks(MACHINE_TICKS_PER_SECOND / 12);
 	draw_button(rectangle_index, false);
 	draw_intro_screen();
+#ifdef VITA
+	if (game_state.state == _display_main_menu)
+	{
+		vita_draw_menu_selection_final_overlay(
+			game_state.highlighted_main_menu_item >= 0 ? game_state.highlighted_main_menu_item : iNewGame);
+	}
+#endif
 }
 
 void update_interface_display(
@@ -1011,10 +1030,16 @@ void update_interface_display(
 
 	if (game_state.state == _display_main_menu)
 	{
+#ifdef VITA
+		vita_draw_menu_selection_label(
+			game_state.highlighted_main_menu_item >= 0 ? game_state.highlighted_main_menu_item : iNewGame);
+#else
 		if (game_state.highlighted_main_menu_item >= 0)
 		{
-			draw_button(game_state.highlighted_main_menu_item + START_OF_MENU_INTERFACE_RECTS - 1, true);
+			const short rect_index = game_state.highlighted_main_menu_item + START_OF_MENU_INTERFACE_RECTS - 1;
+			draw_button(rect_index, true);
 		}
+#endif
 		draw_powered_by_aleph_one(game_state.highlighted_main_menu_item == iAbout);
 	}
 
@@ -1204,6 +1229,166 @@ void set_game_focus_gained()
 
 extern SDL_Surface *draw_surface;	// from screen_drawing.cpp
 //void draw_intro_screen(void);		// from screen.cpp
+
+#ifdef VITA
+static const char *vita_menu_item_label(short menu_item)
+{
+	switch (menu_item)
+	{
+		case iNewGame: return "BEGIN NEW GAME";
+		case iLoadGame: return "CONTINUE SAVED GAME";
+		case iGatherGame: return "GATHER NETWORK GAME";
+		case iJoinGame: return "JOIN NETWORK GAME";
+		case iPreferences: return "PREFERENCES";
+		case iReplayLastFilm: return "REPLAY LAST FILM";
+		case iSaveLastFilm: return "SAVE LAST FILM";
+		case iReplaySavedFilm: return "REPLAY SAVED FILM";
+		case iCredits: return "CREDITS";
+		case iQuit: return "QUIT";
+		case iCenterButton: return "CENTER BUTTON";
+		case iPlaySingletonLevel: return "PLAY SINGLE LEVEL";
+		case iAbout: return "ABOUT ALEPH ONE";
+		default: return "UNKNOWN";
+	}
+}
+
+static void vita_draw_menu_selection_label(short menu_item)
+{
+	char text[128];
+	snprintf(text, sizeof(text), "SELECTED: %s", vita_menu_item_label(menu_item));
+
+	_set_port_to_intro();
+	screen_rectangle bg = { 4, 72, 32, 568 };
+	_fill_screen_rectangle(&bg, _black_color);
+	screen_rectangle dest = { 8, 80, 30, 560 };
+	_draw_screen_text(text, &dest, _center_horizontal | _center_vertical, _computer_interface_title_font, _white_color);
+	_restore_port();
+}
+
+static const char *vita_menu_overlay_glyph(char c)
+{
+	switch (c)
+	{
+		case 'A': return "01110""10001""10001""11111""10001""10001""10001";
+		case 'B': return "11110""10001""10001""11110""10001""10001""11110";
+		case 'C': return "01111""10000""10000""10000""10000""10000""01111";
+		case 'D': return "11110""10001""10001""10001""10001""10001""11110";
+		case 'E': return "11111""10000""10000""11110""10000""10000""11111";
+		case 'F': return "11111""10000""10000""11110""10000""10000""10000";
+		case 'G': return "01111""10000""10000""10111""10001""10001""01111";
+		case 'H': return "10001""10001""10001""11111""10001""10001""10001";
+		case 'I': return "11111""00100""00100""00100""00100""00100""11111";
+		case 'J': return "00111""00010""00010""00010""10010""10010""01100";
+		case 'K': return "10001""10010""10100""11000""10100""10010""10001";
+		case 'L': return "10000""10000""10000""10000""10000""10000""11111";
+		case 'M': return "10001""11011""10101""10101""10001""10001""10001";
+		case 'N': return "10001""11001""10101""10011""10001""10001""10001";
+		case 'O': return "01110""10001""10001""10001""10001""10001""01110";
+		case 'P': return "11110""10001""10001""11110""10000""10000""10000";
+		case 'Q': return "01110""10001""10001""10001""10101""10010""01101";
+		case 'R': return "11110""10001""10001""11110""10100""10010""10001";
+		case 'S': return "01111""10000""10000""01110""00001""00001""11110";
+		case 'T': return "11111""00100""00100""00100""00100""00100""00100";
+		case 'U': return "10001""10001""10001""10001""10001""10001""01110";
+		case 'V': return "10001""10001""10001""10001""10001""01010""00100";
+		case 'W': return "10001""10001""10001""10101""10101""10101""01010";
+		case 'X': return "10001""10001""01010""00100""01010""10001""10001";
+		case 'Y': return "10001""10001""01010""00100""00100""00100""00100";
+		case 'Z': return "11111""00001""00010""00100""01000""10000""11111";
+		case '0': return "01110""10001""10011""10101""11001""10001""01110";
+		case '1': return "00100""01100""00100""00100""00100""00100""01110";
+		case '2': return "01110""10001""00001""00010""00100""01000""11111";
+		case '3': return "11110""00001""00001""01110""00001""00001""11110";
+		case '4': return "00010""00110""01010""10010""11111""00010""00010";
+		case '5': return "11111""10000""10000""11110""00001""00001""11110";
+		case '6': return "01110""10000""10000""11110""10001""10001""01110";
+		case '7': return "11111""00001""00010""00100""01000""01000""01000";
+		case '8': return "01110""10001""10001""01110""10001""10001""01110";
+		case '9': return "01110""10001""10001""01111""00001""00001""01110";
+		case ':': return "00000""00100""00100""00000""00100""00100""00000";
+		case '-': return "00000""00000""00000""11111""00000""00000""00000";
+		default: return "00000""00000""00000""00000""00000""00000""00000";
+	}
+}
+
+static void vita_menu_overlay_draw_text(SDL_Surface *surface, const char *text, int x, int y, int scale, Uint32 color)
+{
+	for (const char *p = text; *p; ++p)
+	{
+		if (*p != ' ')
+		{
+			const char *glyph = vita_menu_overlay_glyph(*p);
+			for (int row = 0; row < 7; ++row)
+			{
+				for (int col = 0; col < 5; ++col)
+				{
+					if (glyph[row * 5 + col] == '1')
+					{
+						SDL_Rect pixel = { static_cast<Sint16>(x + col * scale), static_cast<Sint16>(y + row * scale), static_cast<Uint16>(scale), static_cast<Uint16>(scale) };
+						SDL_FillRect(surface, &pixel, color);
+					}
+				}
+			}
+		}
+		x += 6 * scale;
+	}
+}
+
+static void vita_menu_overlay_draw_rect(SDL_Surface *surface, const screen_rectangle *rect, Uint32 color, int thickness)
+{
+	if (!surface || !rect)
+		return;
+
+	SDL_Rect top = { rect->left, rect->top, static_cast<Uint16>(rect->right - rect->left), static_cast<Uint16>(thickness) };
+	SDL_Rect bottom = { rect->left, static_cast<Sint16>(rect->bottom - thickness), static_cast<Uint16>(rect->right - rect->left), static_cast<Uint16>(thickness) };
+	SDL_Rect left = { rect->left, rect->top, static_cast<Uint16>(thickness), static_cast<Uint16>(rect->bottom - rect->top) };
+	SDL_Rect right = { static_cast<Sint16>(rect->right - thickness), rect->top, static_cast<Uint16>(thickness), static_cast<Uint16>(rect->bottom - rect->top) };
+	SDL_FillRect(surface, &top, color);
+	SDL_FillRect(surface, &bottom, color);
+	SDL_FillRect(surface, &left, color);
+	SDL_FillRect(surface, &right, color);
+}
+
+static void vita_draw_menu_selection_final_overlay(short menu_item)
+{
+	SDL_Surface *surface = MainScreenSurface();
+	if (!surface)
+		return;
+
+	char text[128];
+	snprintf(text, sizeof(text), "SELECTED: %s", vita_menu_item_label(menu_item));
+
+	const int margin = 8;
+	SDL_Rect bg = { static_cast<Sint16>(margin), static_cast<Sint16>(margin), static_cast<Uint16>(surface->w - margin * 2), 34 };
+	SDL_FillRect(surface, &bg, SDL_MapRGB(surface->format, 0, 0, 0));
+
+	SDL_Rect top = { bg.x, bg.y, bg.w, 2 };
+	SDL_Rect bottom = { bg.x, static_cast<Sint16>(bg.y + bg.h - 2), bg.w, 2 };
+	SDL_Rect left = { bg.x, bg.y, 2, bg.h };
+	SDL_Rect right = { static_cast<Sint16>(bg.x + bg.w - 2), bg.y, 2, bg.h };
+	const Uint32 border = SDL_MapRGB(surface->format, 255, 255, 255);
+	SDL_FillRect(surface, &top, border);
+	SDL_FillRect(surface, &bottom, border);
+	SDL_FillRect(surface, &left, border);
+	SDL_FillRect(surface, &right, border);
+
+	vita_menu_overlay_draw_text(surface, text, margin + 10, margin + 8, 2, SDL_MapRGB(surface->format, 0, 255, 0));
+
+	const short rect_index = menu_item + START_OF_MENU_INTERFACE_RECTS - 1;
+	screen_rectangle *selected_rect = get_interface_rectangle(rect_index);
+	if (selected_rect && selected_rect->right > selected_rect->left && selected_rect->bottom > selected_rect->top)
+		vita_menu_overlay_draw_rect(surface, selected_rect, SDL_MapRGB(surface->format, 0, 255, 0), 3);
+}
+
+void vita_draw_main_menu_present_overlay(void)
+{
+	if (game_state.state != _display_main_menu)
+		return;
+
+	vita_draw_menu_selection_final_overlay(
+		game_state.highlighted_main_menu_item >= 0 ? game_state.highlighted_main_menu_item : iNewGame);
+}
+#endif
 
 static SDL_Surface *powered_by_alephone_surface[] = {nullptr, nullptr};
 #include "powered_by_alephone.h"
@@ -1572,9 +1757,17 @@ void process_main_menu_highlight_advance(bool reverse)
 	}
 	while (!enabled_item(game_state.highlighted_main_menu_item));
 	
+#ifdef VITA
+	vita_draw_menu_selection_label(game_state.highlighted_main_menu_item);
+	draw_intro_screen();
+	vita_draw_menu_selection_final_overlay(game_state.highlighted_main_menu_item);
+	return;
+#else
 	if (old_button != -1)
 		draw_button(old_button + START_OF_MENU_INTERFACE_RECTS - 1, false);
-	draw_button(game_state.highlighted_main_menu_item + START_OF_MENU_INTERFACE_RECTS - 1, true);
+	const short rect_index = game_state.highlighted_main_menu_item + START_OF_MENU_INTERFACE_RECTS - 1;
+	draw_button(rect_index, true);
+#endif
 }
 
 void process_main_menu_highlight_select(bool cheatkeys_down)

@@ -48,6 +48,9 @@ Dec 17, 2000 (Loren Petrich):
 #include "screen_drawing.h"
 #include "fades.h"
 #include "screen.h"
+#ifdef VITA
+#include "../../VitaPlatform/vita_build_profile.h"
+#endif
 
 // LP addition: color and font parsers
 #include "FontHandler.h"
@@ -77,6 +80,38 @@ struct interface_font_info
 // Putting in the Moo definitions
 static screen_rectangle interface_rectangles[NUMBER_OF_INTERFACE_RECTANGLES] = 
 {
+#if defined(VITA) && A1_VITA_M1_COCKPIT
+	{0, 0, 23, 640},
+	{23, 0, 295, 176},
+	{23, 624, 297, 640},
+	{295, 0, 480, 215},
+	{26, 20, 119, 113},
+	{274, 77, 286, 163},
+	{147, 88, 259, 104},
+	{147, 136, 259, 152},
+	{314, 29, 437, 152},
+	{390, 163, 440, 203},
+	{398, 172, 417, 193},
+	{0, 595, 24, 622},
+	{366, 217, 454, 398},
+	{366, 398, 454, 620},
+	{305, 235, 349, 293},
+	{305, 313, 349, 380},
+	{305, 396, 349, 450},
+	{305, 475, 349, 526},
+	{305, 549, 349, 598},
+	{0, 0, 480, 640},
+	{0, 0, 18, 640},
+	{462, 0, 480, 640},
+	{27, 8, 453, 632},
+	{27, 8, 453, 316},
+	{27, 324, 453, 632},
+	{27, 8, 453, 632},
+	{110, 8, 160, 632},
+	{170, 8, 220, 632},
+	{0, 0, 0, 0},
+	{0, 0, 0, 0}
+#else
 	{326, 300, 338, 473},
 	{464, 398, 475, 578},
 	{464, 181, 475, 361},
@@ -110,6 +145,7 @@ static screen_rectangle interface_rectangles[NUMBER_OF_INTERFACE_RECTANGLES] =
 	{0, 0, 0, 0},
 	{0, 0, 0, 0},
 	{0, 0, 0, 0}
+#endif
 };
 
 void set_about_alephone_rect(int width, int height)
@@ -1249,4 +1285,3 @@ static void load_interface_rectangles(void)
 static void load_screen_interface_colors(void)
 {
 }
-

@@ -38,6 +38,9 @@
 #include "interface.h"
 #include "screen.h"
 #include "tags.h"
+#ifdef VITA
+#include "../../VitaPlatform/vita_build_profile.h"
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -702,6 +705,34 @@ bool FileSpecifier::Rename(const FileSpecifier& Destination)
 	sys::error_code ec;
 	fs::rename(utf8_to_path(name), utf8_to_path(Destination.name), ec);
 	err = to_posix_code_or_unknown(ec);
+#ifdef VITA
+	if (err != 0) {
+		FILE *log = fopen(A1_VITA_LOG_DIR "/vita_file_debug.log", "a");
+		if (log) {
+			fprintf(log, "rename failed src=%s dst=%s err=%d\n",
+				name.c_str(), Destination.name.c_str(), err);
+			fclose(log);
+		}
+
+		sys::error_code remove_ec;
+		fs::remove(utf8_to_path(Destination.name), remove_ec);
+
+		ec.clear();
+		fs::rename(utf8_to_path(name), utf8_to_path(Destination.name), ec);
+		err = to_posix_code_or_unknown(ec);
+
+		if (err != 0) {
+			FileSpecifier dst = Destination;
+			FileSpecifier src = *this;
+			if (dst.CopyContents(src)) {
+				src.Delete();
+				err = 0;
+			} else {
+				err = dst.GetError();
+			}
+		}
+	}
+#endif
 	return err == 0;
 }
 

@@ -70,6 +70,7 @@ Mar 08, 2002 (Woody Zenfell):
 // LP addition: color and font parsers
 #include "FontHandler.h"
 #include "screen.h"
+#include "render.h"
 
 #include "shell.h"
 #include "preferences.h"
@@ -78,10 +79,20 @@ Mar 08, 2002 (Woody Zenfell):
 #include "images.h"
 #include "InfoTree.h"
 #include "interface_menus.h"
+#include "player.h"
+#include "motion_sensor.h"
+#ifdef VITA
+#include "../../VitaPlatform/vita_build_profile.h"
+#endif
 
 extern void draw_panels(void);
 extern void validate_world_window(void);
+extern struct view_data *world_view;
 static void set_current_inventory_screen(short player_index, short screen);
+extern bool shapes_file_is_m1();
+#ifdef VITA
+static bool vita_draw_m1_status_bars(bool force_redraw);
+#endif
 
 /* --------- globals */
 
@@ -297,6 +308,10 @@ void update_interface(short time_elapsed)
         reset_motion_sensor(current_player_index);
 	if (alephone::Screen::instance()->openGL() || alephone::Screen::instance()->lua_hud())
         return;
+#ifdef VITA
+	if (!alephone::Screen::instance()->hud())
+		return;
+#endif
 
 	if (!game_window_is_full_screen()
 #ifdef VITA
@@ -309,14 +324,28 @@ void update_interface(short time_elapsed)
 
 		ensure_HUD_buffer();
 #ifdef VITA
+#if A1_VITA_M1_COCKPIT
 		if (time_elapsed == NONE)
 			draw_panels();
+#endif
 #endif
 
 		// LP addition: added support for HUD buffer;
 		_set_port_to_HUD();
 		if (HUD_SW.update_everything(time_elapsed))
 			force_update = true;
+#ifdef VITA
+#if A1_VITA_M1_COCKPIT
+		if (shapes_file_is_m1() &&
+			!world_view->overhead_map_active &&
+			!world_view->terminal_mode_active) {
+			if (vita_update_m1_motion_sensor(force_update))
+				force_update = true;
+			if (vita_draw_m1_status_bars(force_update))
+				force_update = true;
+		}
+#endif
+#endif
 		_restore_port();
 		
 		// Draw the whole thing if doing so is requested
@@ -486,6 +515,58 @@ void ensure_HUD_buffer(void) {
   }
 }
 
+#ifdef VITA
+static bool vita_draw_m1_status_bars(bool force_redraw)
+{
+	if (!HUD_Buffer || !current_player || !shapes_file_is_m1())
+		return false;
+
+	const int bar_top = 151;
+	const int bar_height = 100;
+	const int bar_width = 14;
+	const int oxygen_left = 88;
+	const int shield_left = 138;
+
+	const int oxygen = PIN(current_player->suit_oxygen, 0, PLAYER_MAXIMUM_SUIT_OXYGEN);
+	int shield_layer = current_player->suit_energy % PLAYER_MAXIMUM_SUIT_ENERGY;
+	if (shield_layer == 0 && current_player->suit_energy > 0)
+		shield_layer = PLAYER_MAXIMUM_SUIT_ENERGY;
+	const int shield = PIN(shield_layer, 0, PLAYER_MAXIMUM_SUIT_ENERGY);
+
+	static int last_oxygen = -1;
+	static int last_shield = -1;
+	if (!force_redraw && oxygen == last_oxygen && shield == last_shield)
+		return false;
+	last_oxygen = oxygen;
+	last_shield = shield;
+
+	const auto draw_vertical_bar = [&](int x, int value, int maximum, uint8 r, uint8 g, uint8 b) {
+		SDL_Rect clear_rect = { x, bar_top, bar_width, bar_height };
+		SDL_FillRect(HUD_Buffer, &clear_rect, SDL_MapRGB(HUD_Buffer->format, 0x00, 0x00, 0x00));
+
+		const int fill_height = maximum > 0 ? (bar_height * value) / maximum : 0;
+		SDL_Rect fill_rect = { x, bar_top + bar_height - fill_height, bar_width, fill_height };
+		SDL_FillRect(HUD_Buffer, &fill_rect, SDL_MapRGB(HUD_Buffer->format, r, g, b));
+
+		if (fill_height > 0) {
+			SDL_Rect highlight = { x + 1, fill_rect.y, 2, fill_rect.h };
+			SDL_FillRect(HUD_Buffer, &highlight, SDL_MapRGB(HUD_Buffer->format,
+				MIN(255, r + 0x28), MIN(255, g + 0x28), MIN(255, b + 0x28)));
+		}
+
+		const uint32 grid = SDL_MapRGB(HUD_Buffer->format, 0x00, 0x50, 0x00);
+		for (int y = bar_top + 10; y < bar_top + bar_height; y += 10) {
+			SDL_Rect line = { x, y, bar_width, 1 };
+			SDL_FillRect(HUD_Buffer, &line, grid);
+		}
+	};
+
+	draw_vertical_bar(oxygen_left, oxygen, PLAYER_MAXIMUM_SUIT_OXYGEN, 0x18, 0x28, 0xd8);
+	draw_vertical_bar(shield_left, shield, PLAYER_MAXIMUM_SUIT_ENERGY, 0xd8, 0x10, 0x10);
+	return true;
+}
+#endif
+
 /*
  *  Draw HUD (to HUD surface)
  */
@@ -506,22 +587,78 @@ void draw_panels(void)
 		LoadedResource rsrc;
 		if (get_picture_resource_from_images(INTERFACE_PANEL_BASE, rsrc))
 			static_hud_pict = picture_to_surface(rsrc);
+	#ifdef VITA
+		else if (get_picture_resource_from_images(128, rsrc))
+			static_hud_pict = picture_to_surface(rsrc);
+	#endif
 		else
 			hud_pict_not_found = true;
+		if (static_hud_pict)
+			SDL_SetSurfaceBlendMode(static_hud_pict.get(), SDL_BLENDMODE_NONE);
 	} 
 
 	if (!hud_pict_not_found) {
 		SDL_Rect dst_rect = {0, 320, 640, 160};
-		if (!LuaTexturePaletteSize())
-			SDL_BlitSurface(static_hud_pict.get(), NULL, HUD_Buffer, &dst_rect);
-		else
+		if (!LuaTexturePaletteSize()) {
+			SDL_Rect src_rect = {0, 0, 640, 160};
+		#ifdef VITA
+			if (static_hud_pict && static_hud_pict->w >= 640 && static_hud_pict->h >= 480) {
+				src_rect.y = 0;
+				src_rect.h = 480;
+				dst_rect.y = 0;
+				dst_rect.h = 480;
+			}
+		#endif
+			SDL_BlitSurface(static_hud_pict.get(), &src_rect, HUD_Buffer, &dst_rect);
+		} else
 			SDL_FillRect(HUD_Buffer, &dst_rect, 0);
 	}
 
 	// Add dynamic elements
 	_set_port_to_HUD();
 	HUD_SW.update_everything(NONE);
+#ifdef VITA
+#if A1_VITA_M1_COCKPIT
+	vita_draw_m1_status_bars(true);
+#endif
+#endif
 	_restore_port();
+
+#ifdef VITA
+	static int vita_hud_debug_counter = 0;
+	if (++vita_hud_debug_counter == 60) {
+		uint32 nonzero_rgb = 0;
+		uint32 nonzero_alpha = 0;
+		uint32 sampled = 0;
+		SDL_LockSurface(HUD_Buffer);
+		for (int y = 320; y < 480; y += 4) {
+			const uint32 *row = (const uint32 *)((const uint8 *)HUD_Buffer->pixels + y * HUD_Buffer->pitch);
+			for (int x = 0; x < 640; x += 4) {
+				uint32 pixel = row[x];
+				if (pixel & 0x00ffffff)
+					++nonzero_rgb;
+				if (pixel & 0xff000000)
+					++nonzero_alpha;
+				++sampled;
+			}
+		}
+		SDL_UnlockSurface(HUD_Buffer);
+
+		FILE *file = fopen(A1_VITA_LOG_DIR "/vita_hud_debug.log", "a");
+		if (file) {
+			fprintf(file,
+				"hud_debug found=%d pict=%dx%d lua_palette=%d nonzero_rgb=%u nonzero_alpha=%u sampled=%u\n",
+				hud_pict_not_found ? 0 : 1,
+				static_hud_pict ? static_hud_pict->w : 0,
+				static_hud_pict ? static_hud_pict->h : 0,
+				LuaTexturePaletteSize(),
+				(unsigned)nonzero_rgb,
+				(unsigned)nonzero_alpha,
+				(unsigned)sampled);
+			fclose(file);
+		}
+	}
+#endif
 
 	// Tell main loop to render the HUD in the next run
 	RequestDrawingHUD();

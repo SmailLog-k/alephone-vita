@@ -34,8 +34,14 @@ Output:
 
 ```text
 pkg/eboot.bin
-pkg/alephone_vita.vpk
+pkg/alephone_vita_marathon1.vpk
+pkg/alephone_vita_marathon2.vpk
+pkg/alephone_vita_infinity.vpk
 ```
+
+The build script supports separate Vita application profiles so one engine
+codebase can produce multiple LiveArea bubbles with separate TitleIDs,
+preferences, saves, quick-saves, logs, and data directories.
 
 ## Rendering/performance
 
@@ -45,7 +51,8 @@ For the Vita target:
 - Disables OpenGL for the current build.
 - Uses 960x544 fullscreen output.
 - Disables Lua HUD rendering because it caused severe frame-time spikes.
-- Adds a lightweight native HUD path.
+- Adapts the classic HUD/cockpit rendering path for Vita software rendering.
+- Keeps temporary lightweight/debug HUD paths only where needed during active testing.
 - Uses Vita-specific performance defaults.
 - Includes profiling/FPS code used during device testing.
 
@@ -60,8 +67,15 @@ Analog axis thresholding was adjusted for Vita so forward/back movement works re
 The current HUD state is pragmatic:
 
 - original Lua/Enhanced HUD is disabled on Vita;
-- the old classic HUD panel is not fully restored in fullscreen mode yet;
-- a lightweight native HUD displays health/shield, oxygen, weapon, ammo, and related gameplay information.
+- classic HUD/cockpit rendering is being restored in the Vita software renderer;
+- Marathon 1 HUD is usable in gameplay testing;
+- Marathon 2 HUD and automap paths are under active compatibility testing.
+
+## Compatibility policy
+
+Fixes should be made in the Vita engine first whenever possible. Scenario-specific
+handling belongs in the engine/profile layer only when the behavior is genuinely
+tied to a specific scenario. Game data/resource changes should be a last resort.
 
 ## Repository policy
 
