@@ -1,6 +1,6 @@
 # Aleph One PS Vita
 
-This repository contains a native PlayStation Vita port of the Aleph One engine. Aleph One is the open-source continuation of Bungie's original Marathon engine.
+Native Aleph One engine port for PlayStation Vita, targeting the Marathon Trilogy and third-party scenarios.
 
 The goal of this fork is to provide a native PlayStation Vita port of the Aleph One engine.
 
