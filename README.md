@@ -1,21 +1,20 @@
 # Aleph One PS Vita
 
-Native Aleph One engine port for PlayStation Vita, targeting the Marathon Trilogy and third-party scenarios.
-
-The goal of this fork is to provide a native PlayStation Vita port of the Aleph One engine.
+This repository provides a native PlayStation Vita port of the Aleph One engine, targeting the Marathon Trilogy and compatible Aleph One scenarios.
 
 ## Current status
 
 Playable real-hardware prototype.
 
-- Marathon 1 is playable following HUD adaptations for improved performance and is currently undergoing active testing.
-- Marathon 2 launches and is already playable. Active compatibility testing and bug fixing are in progress.
+- Marathon 1 is playable and currently undergoing active compatibility testing.
+- Marathon 2 is playable and currently undergoing active compatibility testing.
+- Marathon Infinity is playable and currently undergoing active compatibility testing.
 - Software rendering is used; OpenGL and Lua HUD are disabled on Vita for performance.
 - Fullscreen 960×544 output is supported.
 - Target performance is 30 FPS. Current testing on real PS Vita hardware shows approximately 23–30 FPS depending on the scene and HUD state.
 - PlayStation Vita controls are fully adapted and suitable for gameplay.
 - Networking and some desktop-only integrations are not currently part of the Vita target.
-- Known issue: underwater/full-screen liquid effects can still significantly reduce frame rate on Vita.
+- Underwater/liquid tint effects use a Vita-specific renderer overlay to avoid the original software-renderer frame-rate drop.
 
 This is not yet a fully polished release. The project is currently under active development and testing.
 
@@ -67,11 +66,13 @@ Sounds
 
 Depending on the scenario, additional files may be required.
 
-Users should provide game data from a legally obtained copy or from a legal Aleph One scenario distribution.
+Users must provide the original game data from a legally obtained copy or from a legal Aleph One scenario distribution.
 
-The repository may include PlayStation Vita compatibility fixes required to make the original game data run correctly on the console. Commercial game assets are not included in this repository.
+This engine repository may include PlayStation Vita compatibility fixes required to make supported Aleph One scenarios run correctly on the console. Commercial game assets are not included in this repository.
 
 The intended release model is a single engine codebase with separate VPK packages for each game. Each game's data should be stored in its own `ux0:data/AlephOne/<Game>/` directory.
+
+Game-specific adaptation files are intended to be handled separately from the engine. A future installer/update bubble may check user-provided game data, create required directories, and apply only redistributable Vita compatibility files or legal patch instructions. The profile mapping in `build-vita-vpk.sh` is the current source of truth for Title IDs and data directories, so other developers can build compatible installer or updater applications without bundling original game assets.
 
 ## Vita build quick start
 

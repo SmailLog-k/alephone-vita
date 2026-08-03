@@ -150,6 +150,47 @@ static OGL_Fader *CurrentOGLFader = NULL;
 
 static int FadeEffectDelay = 0;
 
+#ifdef VITA
+static short vita_liquid_fade_effect_type = NONE;
+
+bool vita_get_liquid_tint(uint8 *red, uint8 *green, uint8 *blue, uint8 *alpha)
+{
+	if (vita_liquid_fade_effect_type == NONE)
+		return false;
+
+	switch (vita_liquid_fade_effect_type)
+	{
+		case _effect_under_water:
+			*red = 0;
+			*green = 48;
+			*blue = 180;
+			*alpha = 48;
+			return true;
+		case _effect_under_lava:
+			*red = 210;
+			*green = 72;
+			*blue = 0;
+			*alpha = 56;
+			return true;
+		case _effect_under_sewage:
+		case _effect_under_jjaro:
+			*red = 96;
+			*green = 160;
+			*blue = 0;
+			*alpha = 48;
+			return true;
+		case _effect_under_goo:
+			*red = 0;
+			*green = 160;
+			*blue = 0;
+			*alpha = 48;
+			return true;
+	}
+
+	return false;
+}
+#endif
+
 /* ---------- fade definitions */
 
 static void tint_color_table(struct color_table *original_color_table, struct color_table *animated_color_table, struct rgb_color *color, _fixed transparency);
@@ -316,6 +357,18 @@ void SetFadeEffectDelay(int _FadeEffectDelay)
 void set_fade_effect(
 	short type)
 {
+#ifdef VITA
+	// Persistent liquid fade effects (under water/lava/sewage/etc.) are
+	// expensive in the Vita software-renderer path. Keep one-shot fades intact,
+	// but replace the always-on liquid tint with a cheap renderer overlay drawn
+	// in screen.cpp.
+	if (type >= 0 && type < NUMBER_OF_FADE_EFFECT_TYPES) {
+		vita_liquid_fade_effect_type = type;
+		type = NONE;
+	} else if (type == NONE) {
+		vita_liquid_fade_effect_type = NONE;
+	}
+#endif
 	bool ForceFEUpdate = false;
 	if (FadeEffectDelay > 0)
 	{

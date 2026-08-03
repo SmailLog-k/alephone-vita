@@ -1392,7 +1392,22 @@ static SDL_Rect vita_m1_cockpit_rect()
 	return r;
 }
 
-static void vita_draw_m1_cockpit_background()
+static void vita_blit_m1_cockpit_piece(SDL_Surface *src_surface, const SDL_Rect& cockpit_dst, const SDL_Rect& piece_dst)
+{
+	if (piece_dst.w <= 0 || piece_dst.h <= 0)
+		return;
+
+	SDL_Rect src = {
+		piece_dst.x - cockpit_dst.x,
+		piece_dst.y - cockpit_dst.y,
+		piece_dst.w,
+		piece_dst.h
+	};
+	SDL_Rect dst = piece_dst;
+	SDL_BlitSurface(src_surface, &src, main_surface, &dst);
+}
+
+static void vita_draw_m1_cockpit_background(bool preserve_view_window = false)
 {
 	static SDL_Surface *cockpit = NULL;
 	static SDL_Surface *cockpit_scaled = NULL;
@@ -1405,8 +1420,10 @@ static void vita_draw_m1_cockpit_background()
 		if (get_picture_resource_from_images(128, rsrc)) {
 			auto surface = picture_to_surface(rsrc);
 			cockpit = surface.release();
-			if (cockpit)
+			if (cockpit) {
 				SDL_SetSurfaceBlendMode(cockpit, SDL_BLENDMODE_NONE);
+				SDL_SetColorKey(cockpit, SDL_FALSE, 0);
+			}
 		}
 		cockpit_loaded = true;
 	}
@@ -1417,8 +1434,10 @@ static void vita_draw_m1_cockpit_background()
 			hud_scaled = NULL;
 		}
 		hud_scaled = rescale_surface(HUD_Buffer, dst.w, dst.h);
-		if (hud_scaled)
+		if (hud_scaled) {
 			SDL_SetSurfaceBlendMode(hud_scaled, SDL_BLENDMODE_NONE);
+			SDL_SetColorKey(hud_scaled, SDL_FALSE, 0);
+		}
 	}
 
 	if (!hud_scaled && cockpit) {
@@ -1430,14 +1449,32 @@ static void vita_draw_m1_cockpit_background()
 				cockpit_scaled = NULL;
 			}
 			cockpit_scaled = rescale_surface(cockpit, dst.w, dst.h);
-			if (cockpit_scaled)
+			if (cockpit_scaled) {
 				SDL_SetSurfaceBlendMode(cockpit_scaled, SDL_BLENDMODE_NONE);
+				SDL_SetColorKey(cockpit_scaled, SDL_FALSE, 0);
+			}
 		}
 	}
 
 	SDL_Surface *src_surface = hud_scaled ? hud_scaled : cockpit_scaled;
 	if (!src_surface)
 		return;
+
+	if (preserve_view_window) {
+		SDL_Rect view = Screen::instance()->view_rect();
+		SDL_Rect hole;
+		if (SDL_IntersectRect(&dst, &view, &hole)) {
+			SDL_Rect top = { dst.x, dst.y, dst.w, hole.y - dst.y };
+			SDL_Rect bottom = { dst.x, hole.y + hole.h, dst.w, dst.y + dst.h - (hole.y + hole.h) };
+			SDL_Rect left = { dst.x, hole.y, hole.x - dst.x, hole.h };
+			SDL_Rect right = { hole.x + hole.w, hole.y, dst.x + dst.w - (hole.x + hole.w), hole.h };
+			vita_blit_m1_cockpit_piece(src_surface, dst, top);
+			vita_blit_m1_cockpit_piece(src_surface, dst, bottom);
+			vita_blit_m1_cockpit_piece(src_surface, dst, left);
+			vita_blit_m1_cockpit_piece(src_surface, dst, right);
+			return;
+		}
+	}
 
 	SDL_Rect src = { 0, 0, src_surface->w, src_surface->h };
 	SDL_BlitSurface(src_surface, &src, main_surface, &dst);
@@ -1729,16 +1766,30 @@ void render_screen(short ticks_elapsed)
 		if (!Map_Buffer)
 			reallocate_map_pixels(MapRect.w, MapRect.h);
 
-		render_overhead_map(world_view);
+		render_view(world_view, software_render_dest.get());
 		SDL_FillRect(main_surface, NULL, SDL_MapRGB(main_surface->format, 0, 0, 0));
 
-		SDL_Rect src_rect = { 0, 0, MapRect.w, MapRect.h };
-		SDL_BlitSurface(Map_Buffer, &src_rect, main_surface, &MapRect);
+		if (Screen::instance()->hud() && !Screen::instance()->lua_hud())
+		{
+			SDL_Rect view_rect = Screen::instance()->view_rect();
+			SDL_Rect src_rect = {
+				(MapRect.w - view_rect.w) / 2,
+				(MapRect.h - view_rect.h) / 2,
+				view_rect.w,
+				view_rect.h
+			};
+			SDL_BlitSurface(Map_Buffer, &src_rect, main_surface, &view_rect);
+		}
+		else
+		{
+			SDL_Rect src_rect = { 0, 0, MapRect.w, MapRect.h };
+			SDL_BlitSurface(Map_Buffer, &src_rect, main_surface, &MapRect);
+		}
 
 		if (Screen::instance()->hud() && !Screen::instance()->lua_hud() && HUD_Buffer)
 		{
 #if A1_VITA_M1_COCKPIT
-			vita_draw_m1_cockpit_background();
+			vita_draw_m1_cockpit_background(true);
 #else
 			SDL_SetSurfaceBlendMode(HUD_Buffer, SDL_BLENDMODE_NONE);
 			SDL_Rect hud_src_rect = { 0, 320, 640, 160 };
@@ -2820,6 +2871,24 @@ void MainScreenUpdateRects(size_t count, const SDL_Rect *rects)
 	}
 	SDL_RenderClear(main_render);
 	SDL_RenderCopy(main_render, main_texture, NULL, NULL);
+#ifdef VITA
+	uint8 liquid_tint_r = 0;
+	uint8 liquid_tint_g = 0;
+	uint8 liquid_tint_b = 0;
+	uint8 liquid_tint_a = 0;
+	if (vita_get_liquid_tint(&liquid_tint_r, &liquid_tint_g, &liquid_tint_b, &liquid_tint_a) &&
+		liquid_tint_a > 0 &&
+		world_view &&
+		!world_view->terminal_mode_active &&
+		!world_view->overhead_map_active)
+	{
+		SDL_SetRenderDrawBlendMode(main_render, SDL_BLENDMODE_BLEND);
+		SDL_SetRenderDrawColor(main_render, liquid_tint_r, liquid_tint_g, liquid_tint_b, liquid_tint_a);
+		SDL_Rect tint_rect = Screen::instance()->view_rect();
+		SDL_RenderFillRect(main_render, &tint_rect);
+		SDL_SetRenderDrawBlendMode(main_render, SDL_BLENDMODE_NONE);
+	}
+#endif
 //	for (size_t i = 0; i < count; ++i) {
 //		SDL_RenderCopy(main_render, main_texture, &rects[i], &rects[i]);
 //	}

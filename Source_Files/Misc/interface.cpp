@@ -152,6 +152,9 @@ extern TP2PerfGlobals perf_globals;
 #include "Statistics.h"
 #include "shell_options.h"
 #include "OpenALManager.h"
+#ifdef VITA
+#include "../../VitaPlatform/vita_build_profile.h"
+#endif
 
 #define PL_MPEG_IMPLEMENTATION
 #include "pl_mpeg.h"
@@ -992,7 +995,7 @@ void resume_game(
 void draw_menu_button_for_command(
 	short index)
 {
-#ifdef VITA
+#if defined(VITA) && !A1_VITA_M1_COCKPIT
 	update_interface_display();
 	vita_draw_menu_selection_final_overlay(index);
 	sleep_for_machine_ticks(MACHINE_TICKS_PER_SECOND / 18);
@@ -1009,7 +1012,7 @@ void draw_menu_button_for_command(
 	sleep_for_machine_ticks(MACHINE_TICKS_PER_SECOND / 12);
 	draw_button(rectangle_index, false);
 	draw_intro_screen();
-#ifdef VITA
+#if defined(VITA) && !A1_VITA_M1_COCKPIT
 	if (game_state.state == _display_main_menu)
 	{
 		vita_draw_menu_selection_final_overlay(
@@ -1024,15 +1027,37 @@ void update_interface_display(
 	struct screen_data *data;
 
 	data= get_screen_data(game_state.state);
+
+#ifdef VITA
+	if (game_state.state == _display_main_menu)
+	{
+		static short last_screen = -999;
+		static short last_highlight = -999;
+		const bool changed = game_state.current_screen != last_screen ||
+			game_state.highlighted_main_menu_item != last_highlight ||
+			interface_fade_in_progress;
+		if (!changed)
+			return;
+		last_screen = game_state.current_screen;
+		last_highlight = game_state.highlighted_main_menu_item;
+	}
+#endif
 	
 	/* Use this to avoid the fade.. */
 	draw_full_screen_pict_resource_from_images(data->screen_base+game_state.current_screen);
 
 	if (game_state.state == _display_main_menu)
 	{
-#ifdef VITA
+#if defined(VITA) && !A1_VITA_M1_COCKPIT
 		vita_draw_menu_selection_label(
 			game_state.highlighted_main_menu_item >= 0 ? game_state.highlighted_main_menu_item : iNewGame);
+#elif defined(VITA)
+		if (game_state.highlighted_main_menu_item >= 0)
+		{
+			const short rect_index = game_state.highlighted_main_menu_item + START_OF_MENU_INTERFACE_RECTS - 1;
+			draw_button(rect_index, true);
+		}
+		draw_powered_by_aleph_one(game_state.highlighted_main_menu_item == iAbout);
 #else
 		if (game_state.highlighted_main_menu_item >= 0)
 		{
@@ -1355,6 +1380,7 @@ static void vita_draw_menu_selection_final_overlay(short menu_item)
 	if (!surface)
 		return;
 
+#if !A1_VITA_M1_COCKPIT
 	char text[128];
 	snprintf(text, sizeof(text), "SELECTED: %s", vita_menu_item_label(menu_item));
 
@@ -1373,6 +1399,7 @@ static void vita_draw_menu_selection_final_overlay(short menu_item)
 	SDL_FillRect(surface, &right, border);
 
 	vita_menu_overlay_draw_text(surface, text, margin + 10, margin + 8, 2, SDL_MapRGB(surface->format, 0, 255, 0));
+#endif
 
 	const short rect_index = menu_item + START_OF_MENU_INTERFACE_RECTS - 1;
 	screen_rectangle *selected_rect = get_interface_rectangle(rect_index);
@@ -1384,6 +1411,10 @@ void vita_draw_main_menu_present_overlay(void)
 {
 	if (game_state.state != _display_main_menu)
 		return;
+
+#if A1_VITA_M1_COCKPIT
+	return;
+#endif
 
 	vita_draw_menu_selection_final_overlay(
 		game_state.highlighted_main_menu_item >= 0 ? game_state.highlighted_main_menu_item : iNewGame);
@@ -1757,11 +1788,18 @@ void process_main_menu_highlight_advance(bool reverse)
 	}
 	while (!enabled_item(game_state.highlighted_main_menu_item));
 	
-#ifdef VITA
+#if defined(VITA) && !A1_VITA_M1_COCKPIT
 	vita_draw_menu_selection_label(game_state.highlighted_main_menu_item);
+#endif
+#ifdef VITA
+#if A1_VITA_M1_COCKPIT
+	update_interface_display();
+	return;
+#else
 	draw_intro_screen();
 	vita_draw_menu_selection_final_overlay(game_state.highlighted_main_menu_item);
 	return;
+#endif
 #else
 	if (old_button != -1)
 		draw_button(old_button + START_OF_MENU_INTERFACE_RECTS - 1, false);
@@ -2593,7 +2631,7 @@ static void draw_button(
 
 	set_drawing_clip_rectangle(SHRT_MIN, SHRT_MIN, SHRT_MAX, SHRT_MAX);
 }
-					
+
 static void handle_replay( /* This is gross. */
 	bool last_replay)
 {

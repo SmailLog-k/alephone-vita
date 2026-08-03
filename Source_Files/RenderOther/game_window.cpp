@@ -337,7 +337,6 @@ void update_interface(short time_elapsed)
 #ifdef VITA
 #if A1_VITA_M1_COCKPIT
 		if (shapes_file_is_m1() &&
-			!world_view->overhead_map_active &&
 			!world_view->terminal_mode_active) {
 			if (vita_update_m1_motion_sensor(force_update))
 				force_update = true;

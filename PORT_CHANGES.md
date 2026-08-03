@@ -52,6 +52,7 @@ For the Vita target:
 - Uses 960x544 fullscreen output.
 - Disables Lua HUD rendering because it caused severe frame-time spikes.
 - Adapts the classic HUD/cockpit rendering path for Vita software rendering.
+- Replaces the original persistent liquid fade path with a Vita renderer overlay to keep underwater scenes playable.
 - Keeps temporary lightweight/debug HUD paths only where needed during active testing.
 - Uses Vita-specific performance defaults.
 - Includes profiling/FPS code used during device testing.
@@ -69,7 +70,8 @@ The current HUD state is pragmatic:
 - original Lua/Enhanced HUD is disabled on Vita;
 - classic HUD/cockpit rendering is being restored in the Vita software renderer;
 - Marathon 1 HUD is usable in gameplay testing;
-- Marathon 2 HUD and automap paths are under active compatibility testing.
+- Marathon 2 and Marathon Infinity HUD and automap paths are under active compatibility testing.
+- HUD redraw requests are suppressed while the non-translucent automap is active to avoid one-frame HUD sprite flashes during map controls.
 
 ## Compatibility policy
 

@@ -119,6 +119,10 @@ bool fade_finished(void);
 
 void set_fade_effect(short type);
 
+#ifdef VITA
+bool vita_get_liquid_tint(uint8 *red, uint8 *green, uint8 *blue, uint8 *alpha);
+#endif
+
 void gamma_correct_color_table(struct color_table *uncorrected_color_table, struct color_table *corrected_color_table, short gamma_level);
 float get_actual_gamma_adjust(short gamma_level);
 
@@ -138,4 +142,3 @@ void parse_mml_faders(const InfoTree& root);
 void reset_mml_faders();
 
 #endif
-
