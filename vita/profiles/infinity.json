@@ -1,0 +1,23 @@
+{
+  "profile": "infinity",
+  "display_order": 30,
+  "title_id": "ALEPH0003",
+  "title": "Marathon Infinity",
+  "data_dir": "ux0:data/AlephOne/MarathonInfinity",
+  "vpk_profile": "infinity",
+  "required_file_groups": [
+    [
+      "Map"
+    ],
+    [
+      "Shapes"
+    ],
+    [
+      "Images"
+    ],
+    [
+      "Sounds"
+    ]
+  ],
+  "compat_layer_dir": "vita/compat/infinity"
+}

@@ -1,0 +1,33 @@
+{
+  "profile": "marathon1",
+  "display_order": 10,
+  "title_id": "ALEPH0001",
+  "title": "Marathon",
+  "data_dir": "ux0:data/AlephOne",
+  "data_dir_is_base_dir": true,
+  "data_dir_fallbacks": [],
+  "vpk_profile": "legacy",
+  "required_file_groups": [
+    [
+      "Map",
+      "Map.scen"
+    ],
+    [
+      "Shapes",
+      "Shapes.shps"
+    ],
+    [
+      "Sounds",
+      "Sounds.sndz"
+    ],
+    [
+      "Images",
+      "Marathon.appl"
+    ],
+    [
+      "Physics",
+      "Physics.phys"
+    ]
+  ],
+  "compat_layer_dir": "vita/compat/marathon1"
+}

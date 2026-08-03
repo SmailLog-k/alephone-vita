@@ -6,23 +6,24 @@ This repository provides a native PlayStation Vita port of the Aleph One engine,
 
 Playable real-hardware prototype.
 
-- Marathon 1 is playable and currently undergoing active compatibility testing.
-- Marathon 2 is playable and currently undergoing active compatibility testing.
-- Marathon Infinity is playable and currently undergoing active compatibility testing.
+- Marathon 1 is playable and currently undergoing longer compatibility testing.
+- Marathon 2 is playable and currently undergoing longer compatibility testing.
+- Marathon Infinity is playable and currently undergoing longer compatibility testing.
+- The release model is three standalone game VPKs built from one shared Aleph One Vita engine codebase.
 - Software rendering is used; OpenGL and Lua HUD are disabled on Vita for performance.
-- Fullscreen 960×544 output is supported.
-- Target performance is 30 FPS. Current testing on real PS Vita hardware shows approximately 23–30 FPS depending on the scene and HUD state.
-- PlayStation Vita controls are fully adapted and suitable for gameplay.
+- Fullscreen 960x544 output is supported.
+- Target performance is 30 FPS. Current testing on real PS Vita hardware shows playable performance across the Marathon Trilogy, with scene-dependent variation.
+- PlayStation Vita controls are adapted and suitable for gameplay.
 - Networking and some desktop-only integrations are not currently part of the Vita target.
 - Underwater/liquid tint effects use a Vita-specific renderer overlay to avoid the original software-renderer frame-rate drop.
 
-This is not yet a fully polished release. The project is currently under active development and testing.
+This is not yet a fully polished release. The project is currently under active development and longer gameplay testing.
 
 ## Photos
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/9772bfdd-9632-428a-9b4e-769711993edb" width="48%" alt="Marathon 1 on PS Vita">
-  <img src="https://github.com/user-attachments/assets/11df0556-6d9f-490e-8062-7aac3798cf4d" width="48%" alt="Marathon 2 on PS Vita">
+ <img src="https://github.com/user-attachments/assets/9772bfdd-9632-428a-9b4e-769711993edb" width="48%" alt="Marathon 1 on PS Vita">
+ <img src="https://github.com/user-attachments/assets/11df0556-6d9f-490e-8062-7aac3798cf4d" width="48%" alt="Marathon 2 on PS Vita">
 </p>
 
 ## Controls
@@ -45,34 +46,90 @@ Current Vita mapping:
 
 ## Vita application profiles and game data
 
-The Vita port is built as a single engine codebase with separate application profiles for each game. Each profile provides its own LiveArea bubble, Title ID, data directory, preferences directory, save directory, quick-save directory, and log directory.
+The Vita port is one engine codebase built into separate game VPKs. Each VPK contains the native Aleph One Vita engine plus a small profile selecting the Title ID, application name, data directory, preferences, saves, logs, and Vita compatibility behavior for that game.
 
-Current profiles:
-
-```text
-marathon1  -> TitleID ALEPH0001 -> ux0:data/AlephOne/Marathon/
-marathon2  -> TitleID ALEPH0002 -> ux0:data/AlephOne/Marathon2/
-infinity   -> TitleID ALEPH0003 -> ux0:data/AlephOne/MarathonInfinity/
-```
-
-Each scenario directory must contain the required Aleph One files, for example:
+Current release VPKs:
 
 ```text
-Map
-Shapes
-Images
-Sounds
+alephone_vita_legacy.vpk     -> Marathon          -> ALEPH0001
+alephone_vita_marathon2.vpk  -> Marathon 2        -> ALEPH0002
+alephone_vita_infinity.vpk   -> Marathon Infinity -> ALEPH0003
 ```
 
-Depending on the scenario, additional files may be required.
+Current game data layout on the Vita:
 
-Users must provide the original game data from a legally obtained copy or from a legal Aleph One scenario distribution.
+```text
+ux0:data/AlephOne/                  -> Marathon 1 data, legacy layout
+ux0:data/AlephOne/Marathon2/        -> Marathon 2 data
+ux0:data/AlephOne/MarathonInfinity/ -> Marathon Infinity data
+```
 
-This engine repository may include PlayStation Vita compatibility fixes required to make supported Aleph One scenarios run correctly on the console. Commercial game assets are not included in this repository.
+Marathon 1 uses the legacy root directory `ux0:data/AlephOne/`. This is intentional for the current stable M1 profile.
 
-The intended release model is a single engine codebase with separate VPK packages for each game. Each game's data should be stored in its own `ux0:data/AlephOne/<Game>/` directory.
+If your game data comes from the Steam **Classic Marathon** release, copy the following files:
 
-Game-specific adaptation files are intended to be handled separately from the engine. A future installer/update bubble may check user-provided game data, create required directories, and apply only redistributable Vita compatibility files or legal patch instructions. The profile mapping in `build-vita-vpk.sh` is the current source of truth for Title IDs and data directories, so other developers can build compatible installer or updater applications without bundling original game assets.
+```text
+E:\SteamLibrary\steamapps\common\Classic Marathon
+```
+
+to:
+
+```text
+ux0:data/AlephOne/
+```
+
+Required Marathon 1 files:
+
+```text
+Map.scen
+Shapes.shps
+Sounds.sndz
+Physics.phys
+Marathon.appl
+Music/
+Plugins/
+Scripts/
+```
+
+Do not copy Steam executables or Steam runtime files such as `.exe` files or `steam_api64.dll`.
+
+For Marathon 2, copy the original data to `ux0:data/AlephOne/Marathon2/`. If using Steam's **Classic Marathon 2** release, copy these files and folders as-is:
+
+```text
+Map.sceA
+Shapes.shpA
+Images.imgA
+Sounds.sndA
+Music.ogg
+Scripts/
+Plugins/
+Physics Models/
+Demos/
+```
+
+For Marathon Infinity, copy the original data to `ux0:data/AlephOne/MarathonInfinity/`. If using Steam's **Classic Marathon Infinity** release, copy these files and folders as-is:
+
+```text
+Map.sceA
+Shapes.shpA
+Images.imgA
+Sounds.sndA
+Music.ogg
+Scripts/
+Plugins/
+Physics Models/
+Demos/
+```
+
+Users must provide original game data from a legally obtained copy or from a legal Aleph One scenario distribution. Commercial game assets are not included in this repository or in the engine VPKs.
+
+## Installation on PS Vita
+
+1. Install the desired game VPK with VitaShell.
+2. Copy the original game data to the matching directory under `ux0:data/AlephOne/`.
+3. Launch the corresponding LiveArea bubble.
+
+Game VPKs are installed directly through VitaShell.
 
 ## Vita build quick start
 
@@ -96,35 +153,49 @@ autoreconf -fi
 
 PKG_CONFIG_LIBDIR="$VITASDK/arm-vita-eabi/lib/pkgconfig" \
 ./configure \
-  --host=arm-vita-eabi \
-  --with-boost="$VITASDK/arm-vita-eabi" \
-  --disable-opengl \
-  --without-curl \
-  --without-zzip \
-  --without-sdl_image \
-  --without-png \
-  --without-miniupnpc \
-  --without-nfd \
-  --without-vpx \
-  --without-matroska \
-  --without-ebml \
-  --without-vorbis \
-  --without-vorbisenc \
-  --without-libyuv \
-  --without-catch2
+ --host=arm-vita-eabi \
+ --with-boost="$VITASDK/arm-vita-eabi" \
+ --disable-opengl \
+ --without-curl \
+ --without-zzip \
+ --without-sdl_image \
+ --without-png \
+ --without-miniupnpc \
+ --without-nfd \
+ --without-vpx \
+ --without-matroska \
+ --without-ebml \
+ --without-vorbis \
+ --without-vorbisenc \
+ --without-libyuv \
+ --without-catch2
 
-./build-vita-vpk.sh pkg marathon1
+./build-vita-vpk.sh pkg legacy
 ./build-vita-vpk.sh pkg marathon2
 ./build-vita-vpk.sh pkg infinity
+```
+
+To build all three game VPKs:
+
+```bash
+./build-vita-release.sh pkg-release
 ```
 
 The build outputs are written to:
 
 ```text
-pkg/alephone_vita_marathon1.vpk
+pkg/alephone_vita_legacy.vpk
 pkg/alephone_vita_marathon2.vpk
 pkg/alephone_vita_infinity.vpk
 pkg/eboot.bin
+```
+
+Release helper outputs are written to:
+
+```text
+pkg-release/games/alephone_vita_legacy.vpk
+pkg-release/games/alephone_vita_marathon2.vpk
+pkg-release/games/alephone_vita_infinity.vpk
 ```
 
 For iterative testing on an already-installed application, upload only `pkg/eboot.bin` to the corresponding Title ID:

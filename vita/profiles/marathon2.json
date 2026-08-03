@@ -1,0 +1,23 @@
+{
+  "profile": "marathon2",
+  "display_order": 20,
+  "title_id": "ALEPH0002",
+  "title": "Marathon 2",
+  "data_dir": "ux0:data/AlephOne/Marathon2",
+  "vpk_profile": "marathon2",
+  "required_file_groups": [
+    [
+      "Map"
+    ],
+    [
+      "Shapes"
+    ],
+    [
+      "Images"
+    ],
+    [
+      "Sounds"
+    ]
+  ],
+  "compat_layer_dir": "vita/compat/marathon2"
+}

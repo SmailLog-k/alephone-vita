@@ -34,7 +34,7 @@ Output:
 
 ```text
 pkg/eboot.bin
-pkg/alephone_vita_marathon1.vpk
+pkg/alephone_vita_legacy.vpk
 pkg/alephone_vita_marathon2.vpk
 pkg/alephone_vita_infinity.vpk
 ```
@@ -42,6 +42,10 @@ pkg/alephone_vita_infinity.vpk
 The build script supports separate Vita application profiles so one engine
 codebase can produce multiple LiveArea bubbles with separate TitleIDs,
 preferences, saves, quick-saves, logs, and data directories.
+
+The repository contains JSON profile manifests for the supported games. The
+current release path is direct installation of the three game VPKs through
+VitaShell.
 
 ## Rendering/performance
 
@@ -70,7 +74,7 @@ The current HUD state is pragmatic:
 - original Lua/Enhanced HUD is disabled on Vita;
 - classic HUD/cockpit rendering is being restored in the Vita software renderer;
 - Marathon 1 HUD is usable in gameplay testing;
-- Marathon 2 and Marathon Infinity HUD and automap paths are under active compatibility testing.
+- Marathon 2 and Marathon Infinity HUD and automap paths are ready for longer gameplay testing.
 - HUD redraw requests are suppressed while the non-translucent automap is active to avoid one-frame HUD sprite flashes during map controls.
 
 ## Compatibility policy

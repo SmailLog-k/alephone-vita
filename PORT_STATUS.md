@@ -10,6 +10,7 @@ The earlier toolchain blockers have been worked around. The current focus is pol
 
 - Builds with VitaSDK in WSL/Linux.
 - Produces profile-specific VPKs and `eboot.bin`.
+- Produces three profile-specific game VPKs from one shared engine codebase.
 - Installs and launches on PS Vita with separate title IDs per game profile.
 - Loads game data from profile-specific directories under `ux0:data/AlephOne/`.
 - Runs Marathon 1 gameplay on real hardware.
@@ -40,6 +41,7 @@ The original persistent liquid fade path caused major frame-rate drops when full
 - Lua HUD is disabled for the Vita target.
 - Network play is not implemented/tested for Vita.
 - Packaging metadata/icons are still minimal.
+- Game bubbles are installed directly as VPKs through VitaShell.
 - The current repository contains active development/profiling code and should be cleaned before a tagged release.
 
 ## Data layout
@@ -47,7 +49,7 @@ The original persistent liquid fade path caused major frame-rate drops when full
 Game data is loaded from profile-specific directories:
 
 ```text
-ux0:data/AlephOne/Marathon/
+ux0:data/AlephOne/ # Marathon 1 legacy layout
 ux0:data/AlephOne/Marathon2/
 ux0:data/AlephOne/MarathonInfinity/
 ```
@@ -69,4 +71,5 @@ Game data is intentionally not included in the engine repository.
 2. Finish and verify classic HUD behavior across the Marathon Trilogy.
 3. Remove or gate profiling logs/FPS overlay for release builds.
 4. Add final app icon/livearea assets.
-5. Prepare separate repositories or packaging instructions for game/scenario data.
+5. Prepare release packaging instructions for legally obtained game/scenario data.
+6. Add final LiveArea/icon assets for the three game VPKs.

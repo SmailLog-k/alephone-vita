@@ -46,9 +46,18 @@ AlephOne.spec
 
 # Vita packaging output
 pkg/
+pkg-installer/
+pkg-installer-*/
+pkg-promote-worker-*/
+pkg-release*/
+empty-installer-packages/
+appdb-check/
 build/
 Source_Files/alephone
 VitaPlatform/vita_build_profile.h
+vita/installer/
+build-vita-installer.sh
+docs/VITA_INSTALLER.md
 
 # Runtime/game data must not be committed to the engine repository
 Scenarios/
