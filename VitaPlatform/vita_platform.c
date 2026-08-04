@@ -23,6 +23,7 @@ static int g_screen_width = 960;
 static int g_screen_height = 544;
 static bool g_fullscreen = true;
 static FILE* g_log_file = NULL;
+static bool g_test_invincible = false;
 
 void vita_platform_log(const char* message)
 {
@@ -32,6 +33,24 @@ void vita_platform_log(const char* message)
         fprintf(g_log_file, "%s\n", message);
         fflush(g_log_file);
     }
+}
+
+bool vita_test_invincible_enabled(void)
+{
+#ifdef A1_VITA_TEST_INVINCIBLE
+    return g_test_invincible;
+#else
+    return false;
+#endif
+}
+
+void vita_test_invincible_set(bool enabled)
+{
+#ifdef A1_VITA_TEST_INVINCIBLE
+    g_test_invincible = enabled;
+#else
+    (void)enabled;
+#endif
 }
 
 void vita_platform_init(void)

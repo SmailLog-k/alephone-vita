@@ -50,6 +50,7 @@ pkg-installer/
 pkg-installer-*/
 pkg-promote-worker-*/
 pkg-release*/
+pkg-test*/
 empty-installer-packages/
 appdb-check/
 build/

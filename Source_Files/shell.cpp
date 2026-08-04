@@ -998,6 +998,10 @@ static void handle_game_key(const SDL_Event &event)
 		}
 		else if (input_preferences->shell_key_bindings[_key_zoom_in].count(sc))
 		{
+#ifdef VITA
+			if (player_controlling_game() && player_in_terminal_mode(local_player_index))
+				return;
+#endif
 			if (zoom_overhead_map_in())
 				PlayInterfaceButtonSound(Sound_ButtonSuccess());
 			else
@@ -1005,6 +1009,10 @@ static void handle_game_key(const SDL_Event &event)
 		}
 		else if (input_preferences->shell_key_bindings[_key_zoom_out].count(sc))
 		{
+#ifdef VITA
+			if (player_controlling_game() && player_in_terminal_mode(local_player_index))
+				return;
+#endif
 			if (zoom_overhead_map_out())
 				PlayInterfaceButtonSound(Sound_ButtonSuccess());
 			else
@@ -1012,6 +1020,10 @@ static void handle_game_key(const SDL_Event &event)
 		}
 		else if (input_preferences->shell_key_bindings[_key_inventory_left].count(sc))
 		{
+#ifdef VITA
+			if (player_controlling_game() && player_in_terminal_mode(local_player_index))
+				return;
+#endif
 			if (player_controlling_game()) {
 				PlayInterfaceButtonSound(Sound_ButtonSuccess());
 				scroll_inventory(-1);
@@ -1020,6 +1032,10 @@ static void handle_game_key(const SDL_Event &event)
 		}
 		else if (input_preferences->shell_key_bindings[_key_inventory_right].count(sc))
 		{
+#ifdef VITA
+			if (player_controlling_game() && player_in_terminal_mode(local_player_index))
+				return;
+#endif
 			if (player_controlling_game()) {
 				PlayInterfaceButtonSound(Sound_ButtonSuccess());
 				scroll_inventory(1);

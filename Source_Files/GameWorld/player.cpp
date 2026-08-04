@@ -170,6 +170,10 @@ May 22, 2003 (Woody Zenfell):
 // ZZZ additions:
 #include "ActionQueues.h"
 
+#if defined(VITA) && defined(A1_VITA_TEST_INVINCIBLE)
+extern "C" bool vita_test_invincible_enabled(void);
+#endif
+
 // jkvw addition:
 #include "lua_script.h"
 
@@ -808,6 +812,8 @@ void update_players(ActionQueues* inActionQueuesToUse, bool inPredictive)
 #ifdef VITA
 					static int32 vita_last_map_toggle_tick[MAXIMUM_NUMBER_OF_PLAYERS] = {};
 					const int32 now = dynamic_world->tick_count;
+					if (now < vita_last_map_toggle_tick[player_index])
+						vita_last_map_toggle_tick[player_index] = 0;
 					if (now - vita_last_map_toggle_tick[player_index] >= TICKS_PER_SECOND / 4)
 					{
 						SET_PLAYER_MAP_STATUS(player, !PLAYER_HAS_MAP_OPEN(player));
@@ -850,6 +856,20 @@ void damage_player(
 	struct damage_response_definition *definition;
 
 	(void) (aggressor_type);
+
+#if defined(VITA) && defined(A1_VITA_TEST_INVINCIBLE)
+	if (vita_test_invincible_enabled() && player_index == local_player_index && !PLAYER_IS_DEAD(player) && damage_amount > 0)
+	{
+		damage_amount = 0;
+		player->suit_energy = MAX(player->suit_energy, player_settings.TripleEnergy);
+		player->suit_oxygen = MAX(player->suit_oxygen, PLAYER_MAXIMUM_SUIT_OXYGEN);
+		if (player_index == current_player_index)
+		{
+			mark_shield_display_as_dirty();
+			mark_oxygen_display_as_dirty();
+		}
+	}
+#endif
 	
 	// LP change: made this more general
 	if (player->invincibility_duration && damage->type!=player_settings.Vulnerability)

@@ -136,6 +136,22 @@ void vita_alephone_handle_vita_events(void)
     SceCtrlData ctrl;
     sceCtrlPeekBufferPositive(0, &ctrl, 1);
 
+#ifdef A1_VITA_TEST_INVINCIBLE
+    static bool prev_invincible_combo = false;
+    const unsigned int invincible_combo =
+        SCE_CTRL_LTRIGGER | SCE_CTRL_RTRIGGER | SCE_CTRL_SELECT;
+    const bool invincible_combo_pressed =
+        (ctrl.buttons & invincible_combo) == invincible_combo;
+    if (invincible_combo_pressed && !prev_invincible_combo)
+    {
+        const bool enabled = !vita_test_invincible_enabled();
+        vita_test_invincible_set(enabled);
+        screen_printf(enabled ? "Test invincibility ON" : "Test invincibility OFF");
+        vita_platform_log(enabled ? "Test invincibility ON" : "Test invincibility OFF");
+    }
+    prev_invincible_combo = invincible_combo_pressed;
+#endif
+
     SceTouchData touch_front;
     sceTouchPeek(SCE_TOUCH_PORT_FRONT, &touch_front, 1);
 

@@ -69,7 +69,7 @@ Marathon 1 uses the legacy root directory `ux0:data/AlephOne/`. This is intentio
 If your game data comes from the Steam **Classic Marathon** release, copy the following files:
 
 ```text
-E:\SteamLibrary\steamapps\common\Classic Marathon
+<SteamLibrary>/steamapps/common/Classic Marathon
 ```
 
 to:

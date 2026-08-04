@@ -16,6 +16,7 @@ case "$profile" in
         title="Marathon"
         data_dir="ux0:data/AlephOne/Marathon"
         profile_id="marathon1"
+        asset_profile="marathon1"
         m1_cockpit=1
         ;;
     marathon2|m2)
@@ -24,6 +25,7 @@ case "$profile" in
         title="Marathon 2"
         data_dir="ux0:data/AlephOne/Marathon2"
         profile_id="marathon2"
+        asset_profile="marathon2"
         m1_cockpit=0
         ;;
     infinity|marathon-infinity|mi)
@@ -32,14 +34,16 @@ case "$profile" in
         title="Marathon Infinity"
         data_dir="ux0:data/AlephOne/MarathonInfinity"
         profile_id="marathon-infinity"
+        asset_profile="infinity"
         m1_cockpit=0
         ;;
     legacy|trilogy)
         profile="legacy"
         title_id="ALEPH0001"
-        title="Aleph One (Marathon Trilogy)"
+        title="Marathon"
         data_dir="ux0:data/AlephOne"
         profile_id="legacy"
+        asset_profile="marathon1"
         m1_cockpit=1
         ;;
     *)
@@ -85,7 +89,11 @@ else
 fi
 
 vita_perf_cflags="${VITA_PERF_CFLAGS:--O3 -fomit-frame-pointer -DNDEBUG}"
+if [ "${VITA_TEST_INVINCIBLE:-0}" = "1" ]; then
+  vita_perf_cflags="$vita_perf_cflags -DA1_VITA_TEST_INVINCIBLE=1"
+fi
 rm -f "$project_dir/Source_Files/alephone"
+rm -f "$project_dir/Source_Files/GameWorld/player.o"
 make -C "$project_dir" -j"$(nproc)" CFLAGS="$vita_perf_cflags" CXXFLAGS="$vita_perf_cflags"
 
 vita-elf-create \
@@ -100,9 +108,18 @@ vita-mksfoex -s "TITLE_ID=$title_id" \
     "$title" \
     "$output_dir/param.sfo"
 
+vpk_args=(
+    -s "$output_dir/param.sfo"
+    -b "$output_dir/eboot.bin"
+)
+
+asset_dir="$project_dir/VitaAssets/$asset_profile"
+if [ -d "$asset_dir/sce_sys" ]; then
+    vpk_args+=(-a "$asset_dir/sce_sys=sce_sys")
+fi
+
 vita-pack-vpk \
-    -s "$output_dir/param.sfo" \
-    -b "$output_dir/eboot.bin" \
+    "${vpk_args[@]}" \
     "$output_dir/alephone_vita_${profile}.vpk"
 
 unzip -t "$output_dir/alephone_vita_${profile}.vpk"

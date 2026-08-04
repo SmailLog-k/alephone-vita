@@ -2060,7 +2060,11 @@ void render_screen(short ticks_elapsed)
 		}
 		else if (world_view->terminal_mode_active)
 		{
+#ifdef VITA
+			MainScreenUpdateRect(0, 0, 0, 0);
+#else
 			MainScreenUpdateRects(1, &TermRect);
+#endif
 		}
 		else if ((!world_view->overhead_map_active || MapIsTranslucent) &&
 				 !world_view->terminal_mode_active)

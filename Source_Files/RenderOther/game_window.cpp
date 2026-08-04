@@ -290,6 +290,10 @@ void draw_interface(void)
 {
 	if (alephone::Screen::instance()->openGL())
 		return;
+#ifdef VITA
+	if (world_view && world_view->terminal_mode_active)
+		return;
+#endif
 
 	if (!game_window_is_full_screen())
 	{
@@ -310,6 +314,8 @@ void update_interface(short time_elapsed)
         return;
 #ifdef VITA
 	if (!alephone::Screen::instance()->hud())
+		return;
+	if (world_view && world_view->terminal_mode_active)
 		return;
 #endif
 

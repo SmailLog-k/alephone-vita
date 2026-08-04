@@ -11,6 +11,8 @@ extern "C" {
 void vita_platform_init(void);
 void vita_platform_shutdown(void);
 void vita_platform_log(const char* message);
+bool vita_test_invincible_enabled(void);
+void vita_test_invincible_set(bool enabled);
 
 const char* vita_get_data_path(void);
 const char* vita_get_save_path(void);
