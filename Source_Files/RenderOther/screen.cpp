@@ -1745,6 +1745,11 @@ void render_screen(short ticks_elapsed)
 		if (world_view->terminal_mode_active) {
 			set_terminal_status(false);
 			SwitchedModes = true;
+#ifdef VITA
+#if A1_VITA_M1_COCKPIT
+			vita_m1_note_hud_full_redraw();
+#endif
+#endif
 		}
 	}
 
