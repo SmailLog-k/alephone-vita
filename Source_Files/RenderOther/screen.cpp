@@ -1384,6 +1384,45 @@ static void darken_world_window(void);
 extern void draw_panels(void);
 extern void ensure_HUD_buffer(void);
 
+static bool vita_m1_cockpit_full_redraw_needed = true;
+static SDL_Rect vita_m1_cockpit_dirty_rects[8];
+static int vita_m1_cockpit_dirty_rect_count = 0;
+
+void vita_m1_note_hud_full_redraw()
+{
+	vita_m1_cockpit_full_redraw_needed = true;
+	vita_m1_cockpit_dirty_rect_count = 0;
+}
+
+void vita_m1_note_hud_dirty_rect(int x, int y, int w, int h)
+{
+	if (w <= 0 || h <= 0)
+		return;
+
+	SDL_Rect r = { x, y, w, h };
+	if (r.x < 0) {
+		r.w += r.x;
+		r.x = 0;
+	}
+	if (r.y < 0) {
+		r.h += r.y;
+		r.y = 0;
+	}
+	if (r.x + r.w > 640)
+		r.w = 640 - r.x;
+	if (r.y + r.h > 480)
+		r.h = 480 - r.y;
+	if (r.w <= 0 || r.h <= 0)
+		return;
+
+	if (vita_m1_cockpit_dirty_rect_count >= (int)(sizeof(vita_m1_cockpit_dirty_rects) / sizeof(vita_m1_cockpit_dirty_rects[0]))) {
+		vita_m1_note_hud_full_redraw();
+		return;
+	}
+
+	vita_m1_cockpit_dirty_rects[vita_m1_cockpit_dirty_rect_count++] = r;
+}
+
 static SDL_Rect vita_m1_cockpit_rect()
 {
 	const int cockpit_h = main_surface->h;
@@ -1407,6 +1446,53 @@ static void vita_blit_m1_cockpit_piece(SDL_Surface *src_surface, const SDL_Rect&
 	SDL_BlitSurface(src_surface, &src, main_surface, &dst);
 }
 
+#if A1_VITA_M1_COCKPIT
+static SDL_Rect vita_m1_scale_hud_rect_to_cockpit(const SDL_Rect& src, const SDL_Rect& cockpit_dst)
+{
+	const int x1 = cockpit_dst.x + (src.x * cockpit_dst.w) / 640;
+	const int y1 = cockpit_dst.y + (src.y * cockpit_dst.h) / 480;
+	const int x2 = cockpit_dst.x + ((src.x + src.w) * cockpit_dst.w + 639) / 640;
+	const int y2 = cockpit_dst.y + ((src.y + src.h) * cockpit_dst.h + 479) / 480;
+	SDL_Rect dst = { x1, y1, x2 - x1, y2 - y1 };
+	return dst;
+}
+
+static bool vita_m1_update_scaled_hud_region(SDL_Surface *hud_scaled, const SDL_Rect& cockpit_dst, const SDL_Rect& src)
+{
+	if (!HUD_Buffer || !hud_scaled)
+		return false;
+
+	SDL_Rect scaled_dst = vita_m1_scale_hud_rect_to_cockpit(src, cockpit_dst);
+	if (scaled_dst.w <= 0 || scaled_dst.h <= 0)
+		return false;
+
+	SDL_Surface *slice = SDL_CreateRGBSurface(SDL_SWSURFACE, src.w, src.h,
+		HUD_Buffer->format->BitsPerPixel, HUD_Buffer->format->Rmask,
+		HUD_Buffer->format->Gmask, HUD_Buffer->format->Bmask, HUD_Buffer->format->Amask);
+	if (!slice)
+		return false;
+
+	SDL_SetSurfaceBlendMode(slice, SDL_BLENDMODE_NONE);
+	SDL_Rect slice_dst = { 0, 0, src.w, src.h };
+	SDL_BlitSurface(HUD_Buffer, const_cast<SDL_Rect *>(&src), slice, &slice_dst);
+
+	SDL_Surface *scaled = rescale_surface(slice, scaled_dst.w, scaled_dst.h);
+	SDL_FreeSurface(slice);
+	if (!scaled)
+		return false;
+
+	SDL_SetSurfaceBlendMode(scaled, SDL_BLENDMODE_NONE);
+	SDL_SetColorKey(scaled, SDL_FALSE, 0);
+
+	SDL_Rect cache_dst = { scaled_dst.x - cockpit_dst.x, scaled_dst.y - cockpit_dst.y, scaled_dst.w, scaled_dst.h };
+	SDL_Rect scaled_src = { 0, 0, scaled->w, scaled->h };
+	SDL_BlitSurface(scaled, &scaled_src, hud_scaled, &cache_dst);
+	SDL_BlitSurface(scaled, &scaled_src, main_surface, &scaled_dst);
+	SDL_FreeSurface(scaled);
+	return true;
+}
+#endif
+
 static void vita_draw_m1_cockpit_background(bool preserve_view_window = false)
 {
 	static SDL_Surface *cockpit = NULL;
@@ -1429,14 +1515,30 @@ static void vita_draw_m1_cockpit_background(bool preserve_view_window = false)
 	}
 
 	if (HUD_RenderRequest && HUD_Buffer) {
-		if (hud_scaled) {
-			SDL_FreeSurface(hud_scaled);
-			hud_scaled = NULL;
+#if A1_VITA_M1_COCKPIT
+		if (hud_scaled && !vita_m1_cockpit_full_redraw_needed && vita_m1_cockpit_dirty_rect_count > 0) {
+			for (int i = 0; i < vita_m1_cockpit_dirty_rect_count; ++i)
+				vita_m1_update_scaled_hud_region(hud_scaled, dst, vita_m1_cockpit_dirty_rects[i]);
+			vita_m1_cockpit_dirty_rect_count = 0;
+			if (!preserve_view_window)
+				return;
 		}
-		hud_scaled = rescale_surface(HUD_Buffer, dst.w, dst.h);
-		if (hud_scaled) {
-			SDL_SetSurfaceBlendMode(hud_scaled, SDL_BLENDMODE_NONE);
-			SDL_SetColorKey(hud_scaled, SDL_FALSE, 0);
+		else
+#endif
+		{
+			if (hud_scaled) {
+				SDL_FreeSurface(hud_scaled);
+				hud_scaled = NULL;
+			}
+			hud_scaled = rescale_surface(HUD_Buffer, dst.w, dst.h);
+			if (hud_scaled) {
+				SDL_SetSurfaceBlendMode(hud_scaled, SDL_BLENDMODE_NONE);
+				SDL_SetColorKey(hud_scaled, SDL_FALSE, 0);
+			}
+#if A1_VITA_M1_COCKPIT
+			vita_m1_cockpit_full_redraw_needed = false;
+			vita_m1_cockpit_dirty_rect_count = 0;
+#endif
 		}
 	}
 
@@ -1472,8 +1574,14 @@ static void vita_draw_m1_cockpit_background(bool preserve_view_window = false)
 			vita_blit_m1_cockpit_piece(src_surface, dst, bottom);
 			vita_blit_m1_cockpit_piece(src_surface, dst, left);
 			vita_blit_m1_cockpit_piece(src_surface, dst, right);
+#if A1_VITA_M1_COCKPIT
+			vita_m1_note_hud_full_redraw();
+#endif
 			return;
 		}
+#if A1_VITA_M1_COCKPIT
+		vita_m1_note_hud_full_redraw();
+#endif
 	}
 
 	SDL_Rect src = { 0, 0, src_surface->w, src_surface->h };

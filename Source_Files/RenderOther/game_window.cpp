@@ -92,6 +92,8 @@ static void set_current_inventory_screen(short player_index, short screen);
 extern bool shapes_file_is_m1();
 #ifdef VITA
 static bool vita_draw_m1_status_bars(bool force_redraw);
+extern void vita_m1_note_hud_full_redraw();
+extern void vita_m1_note_hud_dirty_rect(int x, int y, int w, int h);
 #endif
 
 /* --------- globals */
@@ -331,15 +333,24 @@ void update_interface(short time_elapsed)
 		ensure_HUD_buffer();
 #ifdef VITA
 #if A1_VITA_M1_COCKPIT
-		if (time_elapsed == NONE)
+		if (time_elapsed == NONE) {
 			draw_panels();
+			vita_m1_note_hud_full_redraw();
+		}
 #endif
 #endif
 
 		// LP addition: added support for HUD buffer;
 		_set_port_to_HUD();
-		if (HUD_SW.update_everything(time_elapsed))
+		if (HUD_SW.update_everything(time_elapsed)) {
 			force_update = true;
+#ifdef VITA
+#if A1_VITA_M1_COCKPIT
+			if (shapes_file_is_m1())
+				vita_m1_note_hud_full_redraw();
+#endif
+#endif
+		}
 #ifdef VITA
 #if A1_VITA_M1_COCKPIT
 		if (shapes_file_is_m1() &&
@@ -568,6 +579,8 @@ static bool vita_draw_m1_status_bars(bool force_redraw)
 
 	draw_vertical_bar(oxygen_left, oxygen, PLAYER_MAXIMUM_SUIT_OXYGEN, 0x18, 0x28, 0xd8);
 	draw_vertical_bar(shield_left, shield, PLAYER_MAXIMUM_SUIT_ENERGY, 0xd8, 0x10, 0x10);
+	vita_m1_note_hud_dirty_rect(oxygen_left, bar_top, bar_width, bar_height);
+	vita_m1_note_hud_dirty_rect(shield_left, bar_top, bar_width, bar_height);
 	return true;
 }
 #endif

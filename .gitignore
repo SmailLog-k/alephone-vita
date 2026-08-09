@@ -51,6 +51,8 @@ pkg-installer-*/
 pkg-promote-worker-*/
 pkg-release*/
 pkg-test*/
+pkg-diagnostic*/
+pkg-stable*/
 empty-installer-packages/
 appdb-check/
 build/

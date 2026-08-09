@@ -379,6 +379,7 @@ bool motion_sensor_has_changed(void)
 #ifdef VITA
 extern SDL_Surface *HUD_Buffer;
 extern bool shapes_file_is_m1();
+extern void vita_m1_note_hud_dirty_rect(int x, int y, int w, int h);
 
 bool vita_update_m1_motion_sensor(bool force_redraw)
 {
@@ -448,6 +449,7 @@ bool vita_update_m1_motion_sensor(bool force_redraw)
 		}
 	}
 
+	vita_m1_note_hud_dirty_rect(center_x - radius, center_y - radius, radius * 2 + 1, radius * 2 + 1);
 	return true;
 }
 #endif
