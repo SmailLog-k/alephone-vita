@@ -129,6 +129,10 @@ static int failed_multisamples = 0;		// remember when GL multisample setting did
 static bool passed_shader = false;      // remember when we passed Shader tests
 
 #ifdef VITA
+#ifndef A1_VITA_PROFILE_PERF
+#define A1_VITA_PROFILE_PERF 0
+#endif
+
 static Uint64 vita_perf_render_view_total;
 static Uint64 vita_perf_overlay_total;
 static Uint64 vita_perf_blit_total;
@@ -2019,9 +2023,11 @@ void render_screen(short ticks_elapsed)
 #endif
 	) {
 	  extern bool chat_input_mode;
+#if !defined(VITA) || A1_VITA_PROFILE_PERF
 	  if (!chat_input_mode){
 		update_fps_display(disp_pixels);
 	  }
+#endif
 	  DisplayPosition(disp_pixels);
 	  DisplayScores(disp_pixels);
 	}
@@ -2218,7 +2224,9 @@ void render_screen(short ticks_elapsed)
 	Movie::instance()->AddFrame(Movie::FRAME_NORMAL);
 #ifdef VITA
 	vita_perf_frame_total += vita_perf_now_us() - vita_frame_start_us;
+#if A1_VITA_PROFILE_PERF
 	vita_perf_maybe_log();
+#endif
 #endif
 }
 

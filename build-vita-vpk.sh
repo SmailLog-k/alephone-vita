@@ -7,7 +7,7 @@ export PATH="$VITASDK/bin:$PATH"
 
 project_dir="$(cd "$(dirname "$0")" && pwd)"
 output_dir="${1:-$project_dir/pkg}"
-profile="${A1_VITA_PROFILE:-${2:-marathon1}}"
+profile="${A1_VITA_PROFILE:-${2:-legacy}}"
 
 case "$profile" in
     marathon1|m1)
@@ -91,6 +91,9 @@ fi
 vita_perf_cflags="${VITA_PERF_CFLAGS:--O3 -fomit-frame-pointer -DNDEBUG}"
 if [ "${VITA_TEST_INVINCIBLE:-0}" = "1" ]; then
   vita_perf_cflags="$vita_perf_cflags -DA1_VITA_TEST_INVINCIBLE=1"
+fi
+if [ "${VITA_PROFILE_PERF:-0}" = "1" ]; then
+  vita_perf_cflags="$vita_perf_cflags -DA1_VITA_PROFILE_PERF=1"
 fi
 rm -f "$project_dir/Source_Files/alephone"
 rm -f "$project_dir/Source_Files/GameWorld/player.o"

@@ -57,7 +57,7 @@ PKG_CONFIG_LIBDIR="$VITASDK/arm-vita-eabi/lib/pkgconfig" \
 ## Build VPK
 
 ```bash
-./build-vita-vpk.sh pkg marathon1
+./build-vita-vpk.sh pkg legacy
 ./build-vita-vpk.sh pkg marathon2
 ./build-vita-vpk.sh pkg infinity
 ```
@@ -65,7 +65,7 @@ PKG_CONFIG_LIBDIR="$VITASDK/arm-vita-eabi/lib/pkgconfig" \
 Outputs:
 
 ```text
-pkg/alephone_vita_marathon1.vpk
+pkg/alephone_vita_legacy.vpk
 pkg/alephone_vita_marathon2.vpk
 pkg/alephone_vita_infinity.vpk
 pkg/eboot.bin
@@ -84,6 +84,21 @@ changes inside static libraries are picked up by `pkg/eboot.bin`.
 
 Use the profile name that matches the installed Vita app.
 
+For the current public Marathon 1 VPK, use the stable legacy profile:
+
+```bash
+./build-vita-vpk.sh pkg legacy
+```
+
+Diagnostic profiling can be enabled explicitly:
+
+```bash
+VITA_PROFILE_PERF=1 ./build-vita-vpk.sh pkg legacy
+```
+
+Release builds should leave `VITA_PROFILE_PERF` unset so the FPS overlay and
+`vita_perf.log` writes are disabled.
+
 ## Deploy to an installed Vita app
 
 If the VPK is already installed and VitaShell FTP is running, replace `VITA_IP` with your device address:
@@ -101,7 +116,7 @@ curl --ftp-method nocwd \
 Profile TitleIDs:
 
 ```text
-marathon1  -> ALEPH0001
+legacy     -> ALEPH0001
 marathon2  -> ALEPH0002
 infinity   -> ALEPH0003
 ```
@@ -111,7 +126,7 @@ infinity   -> ALEPH0003
 Install game data separately to the matching profile directory:
 
 ```text
-ux0:data/AlephOne/Marathon/
+ux0:data/AlephOne/
 ux0:data/AlephOne/Marathon2/
 ux0:data/AlephOne/MarathonInfinity/
 ```
@@ -132,8 +147,7 @@ legally obtained copy or from a legal Aleph One scenario distribution.
 
 Before publishing a release build:
 
-- disable or make optional the FPS overlay;
-- disable or gate profiling log writes;
-- verify that no scenario data or generated binaries are included;
+- leave `VITA_PROFILE_PERF` unset unless intentionally publishing a diagnostic build;
+- verify that no scenario data or generated binaries are committed;
 - test launch from a fresh Vita install;
 - test with each Marathon Trilogy scenario layout separately.

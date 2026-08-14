@@ -4,11 +4,11 @@ This repository provides a native PlayStation Vita port of the Aleph One engine,
 
 ## Current status
 
-Playable real-hardware prototype.
+First public release candidate for the PS Vita Marathon Trilogy engine port.
 
-- Marathon 1 is playable and currently undergoing longer compatibility testing.
-- Marathon 2 is playable and currently undergoing longer compatibility testing.
-- Marathon Infinity is playable and currently undergoing longer compatibility testing.
+- Marathon 1 is playable and has been completed 100% on real PS Vita hardware.
+- Marathon 2 is playable on real PS Vita hardware; full-playthrough testing is still in progress.
+- Marathon Infinity is playable on real PS Vita hardware; full-playthrough testing is still in progress.
 - The release model is three standalone game VPKs built from one shared Aleph One Vita engine codebase.
 - Software rendering is used; OpenGL and Lua HUD are disabled on Vita for performance.
 - Fullscreen 960x544 output is supported.
@@ -16,8 +16,9 @@ Playable real-hardware prototype.
 - PlayStation Vita controls are adapted and suitable for gameplay.
 - Networking and some desktop-only integrations are not currently part of the Vita target.
 - Underwater/liquid tint effects use a Vita-specific renderer overlay to avoid the original software-renderer frame-rate drop.
+- Marathon 1 classic HUD/cockpit rendering uses Vita-specific dirty-rectangle updates for playable performance on later levels.
 
-This is not yet a fully polished release. The project is currently under active development and longer gameplay testing.
+This is an engine-port release. Original game data is not included.
 
 ## Photos
 
@@ -129,7 +130,7 @@ Users must provide original game data from a legally obtained copy or from a leg
 2. Copy the original game data to the matching directory under `ux0:data/AlephOne/`.
 3. Launch the corresponding LiveArea bubble.
 
-Game VPKs are installed directly through VitaShell.
+Game VPKs are installed directly through VitaShell. There is no separate installer/worker application in this release.
 
 ## Vita build quick start
 
@@ -184,9 +185,7 @@ To build all three game VPKs:
 The build outputs are written to:
 
 ```text
-pkg/alephone_vita_legacy.vpk
-pkg/alephone_vita_marathon2.vpk
-pkg/alephone_vita_infinity.vpk
+pkg/alephone_vita_<profile>.vpk
 pkg/eboot.bin
 ```
 

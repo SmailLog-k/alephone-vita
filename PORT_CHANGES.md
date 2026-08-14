@@ -47,6 +47,14 @@ The repository contains JSON profile manifests for the supported games. The
 current release path is direct installation of the three game VPKs through
 VitaShell.
 
+First release assets are three standalone VPKs:
+
+```text
+alephone_vita_legacy.vpk     -> Marathon
+alephone_vita_marathon2.vpk  -> Marathon 2
+alephone_vita_infinity.vpk   -> Marathon Infinity
+```
+
 ## Rendering/performance
 
 For the Vita target:
@@ -57,9 +65,10 @@ For the Vita target:
 - Disables Lua HUD rendering because it caused severe frame-time spikes.
 - Adapts the classic HUD/cockpit rendering path for Vita software rendering.
 - Replaces the original persistent liquid fade path with a Vita renderer overlay to keep underwater scenes playable.
-- Keeps temporary lightweight/debug HUD paths only where needed during active testing.
+- Uses dirty-rectangle updates for Marathon 1 cockpit/HUD changes so the full HUD does not need to be rescaled every frame.
+- Gates FPS overlay and performance log output behind diagnostic build flags for release builds.
 - Uses Vita-specific performance defaults.
-- Includes profiling/FPS code used during device testing.
+- Keeps profiling/FPS code available for diagnostic builds.
 
 ## Input
 
@@ -72,24 +81,8 @@ Analog axis thresholding was adjusted for Vita so forward/back movement works re
 The current HUD state is pragmatic:
 
 - original Lua/Enhanced HUD is disabled on Vita;
-- classic HUD/cockpit rendering is being restored in the Vita software renderer;
-- Marathon 1 HUD is usable in gameplay testing;
-- Marathon 2 and Marathon Infinity HUD and automap paths are ready for longer gameplay testing.
+- classic HUD/cockpit rendering is adapted in the Vita software renderer;
+- Marathon 1 HUD has been used through a full completion test on real hardware;
+- Marathon 2 and Marathon Infinity HUD and automap paths are playable and ready for full-playthrough testing.
 - HUD redraw requests are suppressed while the non-translucent automap is active to avoid one-frame HUD sprite flashes during map controls.
-
-## Compatibility policy
-
-Fixes should be made in the Vita engine first whenever possible. Scenario-specific
-handling belongs in the engine/profile layer only when the behavior is genuinely
-tied to a specific scenario. Game data/resource changes should be a last resort.
-
-## Repository policy
-
-This repository is for the engine port only.
-
-Do not commit:
-
-- Marathon scenario data;
-- installed Vita app data;
-- VPK/SELF/ELF/BIN outputs;
-- local logs or crash dumps.
+- Marathon 1 forces a full cockpit redraw after leaving map/terminal modes so dirty-rectangle updates do not leave stale black screen regions.
