@@ -99,9 +99,11 @@ Jan 25, 2002 (Br'fin (Jeremy Parsons)):
 #include <limits.h>
 
 #include <vector>
+#include <string>
 
 #include "cseries.h"
 #include "FileHandler.h"
+#include "../../VitaPlatform/vita_build_profile.h"
 
 #include "world.h"
 #include "map.h"
@@ -279,6 +281,10 @@ static vector<terminal_text_t> map_terminal_text;
 // ghs: for Lua
 short number_of_terminal_texts() { return map_terminal_text.size(); }
 
+static void calculate_maximum_lines_for_groups(struct terminal_groupings *groups,
+	short group_count, char *text_base);
+static void apply_russian_map_terminal_override(short terminal_id, terminal_text_t *terminal_text);
+
 /* internal global structure */
 static struct player_terminal_data *player_terminals;
 
@@ -438,25 +444,117 @@ static bool can_break_after(char c)
 	}
 }
 
+static int utf8_sequence_length(const char *text, int remaining)
+{
+	if (remaining <= 0) return 0;
+
+	const unsigned char c = static_cast<unsigned char>(text[0]);
+	if (c < 0x80) return 1;
+	if (c >= 0xc2 && c <= 0xdf && remaining >= 2 &&
+		(static_cast<unsigned char>(text[1]) & 0xc0) == 0x80) return 2;
+	if (c >= 0xe0 && c <= 0xef && remaining >= 3 &&
+		(static_cast<unsigned char>(text[1]) & 0xc0) == 0x80 &&
+		(static_cast<unsigned char>(text[2]) & 0xc0) == 0x80) return 3;
+	if (c >= 0xf0 && c <= 0xf4 && remaining >= 4 &&
+		(static_cast<unsigned char>(text[1]) & 0xc0) == 0x80 &&
+		(static_cast<unsigned char>(text[2]) & 0xc0) == 0x80 &&
+		(static_cast<unsigned char>(text[3]) & 0xc0) == 0x80) return 4;
+
+	return 1;
+}
+
+static bool terminal_range_uses_utf8(const char *text, int start_index, int end_index)
+{
+	bool saw_multibyte = false;
+	int index = start_index;
+
+	while (index < end_index && text[index])
+	{
+		const unsigned char c = static_cast<unsigned char>(text[index]);
+		if (c == MAC_LINE_END)
+		{
+			index++;
+			continue;
+		}
+		if (c < 0x80)
+		{
+			index++;
+			continue;
+		}
+
+		const int remaining = end_index - index;
+		const int length = utf8_sequence_length(text + index, remaining);
+		if (length <= 1)
+		{
+			return false;
+		}
+
+		saw_multibyte = true;
+		index += length;
+	}
+
+	return saw_multibyte;
+}
+
+static font_info *get_utf8_terminal_font()
+{
+	static font_info *font = NULL;
+	if (!font)
+	{
+		TextSpec spec;
+		spec.font = -1;
+		spec.style = styleNormal;
+		spec.size = 12;
+		spec.adjust_height = 0;
+		spec.normal = "DejaVu LGC Sans Condensed Bold";
+		font = load_font(spec);
+	}
+	return font ? font : GetInterfaceFont(_computer_interface_font);
+}
+
+static font_info *get_terminal_font_for_text(bool use_utf8)
+{
+	return use_utf8 ? get_utf8_terminal_font() : GetInterfaceFont(_computer_interface_font);
+}
+
 static bool calculate_line(char *base_text, short width, short start_index, short text_end_index, short *end_index)
 {
 	bool done = false;
 
-	if (base_text[start_index]) {
+	if (start_index >= text_end_index)
+	{
+		*end_index = text_end_index;
+		done = true;
+	}
+	else if (base_text[start_index]) {
 		int index = start_index, running_width = 0;
 		
+		const bool use_utf8 = terminal_range_uses_utf8(base_text, start_index, text_end_index);
 		// terminal_font no longer a global, since it may change
-		font_info *terminal_font = GetInterfaceFont(_computer_interface_font);
+		font_info *terminal_font = get_terminal_font_for_text(use_utf8);
 
-		while (running_width < width && base_text[index] && base_text[index] != MAC_LINE_END) {
-			running_width += char_width(base_text[index], terminal_font, current_style);
-			index++;
+		while (running_width < width && index < text_end_index && base_text[index] && base_text[index] != MAC_LINE_END) {
+			if (use_utf8)
+			{
+				const int length = utf8_sequence_length(base_text + index, text_end_index - index);
+				running_width += text_width(base_text + index, length, terminal_font, current_style, true);
+				index += length;
+			}
+			else
+			{
+				running_width += char_width(base_text[index], terminal_font, current_style);
+				index++;
+			}
 		}
 
 		// Now go backwards, looking for a place to split
-		if (base_text[index] == MAC_LINE_END)
+		if (index >= text_end_index)
+		{
+			index = text_end_index;
+		}
+		else if (base_text[index] == MAC_LINE_END)
 			index++;
-		else if (base_text[index]) {
+		else if (index < text_end_index && base_text[index]) {
 			if (film_profile.better_terminal_word_wrap)
 			{
 				int break_point = index - 1;
@@ -859,9 +957,10 @@ static void draw_logon_text(
     }
 
 	/* This is always just a line, so we can do this here.. */
-	font_info *terminal_font = GetInterfaceFont(_computer_interface_font);
 	uint16 terminal_style = GetInterfaceStyle(_computer_interface_font);
-	width = text_width(base_text + current_group->start_index, current_group->length, terminal_font, terminal_style);
+	const bool use_utf8 = terminal_range_uses_utf8(base_text, current_group->start_index, current_group->start_index + current_group->length);
+	font_info *terminal_font = get_terminal_font_for_text(use_utf8);
+	width = text_width(base_text + current_group->start_index, current_group->length, terminal_font, terminal_style, use_utf8);
 	// width = text_width(base_text + current_group->start_index, current_group->length, terminal_font, _get_font_spec(_computer_interface_font)->style);
 	picture_bounds.left += (RECTANGLE_WIDTH(&picture_bounds) - width) / 2;
 	
@@ -1052,7 +1151,8 @@ static void draw_line(
 	}
 	
 	current_start= start_index;
-	font_info *terminal_font = GetInterfaceFont(_computer_interface_font);
+	const bool use_utf8 = terminal_range_uses_utf8(base_text, start_index, end_index);
+	font_info *terminal_font = get_terminal_font_for_text(use_utf8);
 	int xpos = bounds->left;
 
 	while(!done)
@@ -1073,7 +1173,7 @@ static void draw_line(
 
 		xpos += draw_text(/*world_pixels*/ draw_surface, base_text + current_start, current_end - current_start,
 		                  xpos, bounds->top + line_height * (line_number + FUDGE_FACTOR),
-		                  current_pixel, terminal_font, current_style);
+		                  current_pixel, terminal_font, current_style, use_utf8);
 		if(current_end!=end_index)
 		{
 			current_start= current_end;
@@ -1355,6 +1455,222 @@ extern OpenedResourceFile ExternalResources;
 
 static terminal_text_t* compile_marathon_terminal(char*, short);
 
+static terminal_text_t *load_russian_terminal_text_file(short id)
+{
+	std::string path = std::string(A1_VITA_DATA_DIR) + "/Russian/term_" + std::to_string(id) + ".txt";
+	FILE *file = fopen(path.c_str(), "rb");
+	if (!file)
+	{
+		logNote("Russian terminal override not found: %s", path.c_str());
+		return NULL;
+	}
+
+	fseek(file, 0, SEEK_END);
+	long length = ftell(file);
+	fseek(file, 0, SEEK_SET);
+	if (length <= 0)
+	{
+		fclose(file);
+		logNote("Russian terminal override is empty: %s", path.c_str());
+		return NULL;
+	}
+
+	std::vector<char> file_data(length);
+	if (fread(file_data.data(), 1, length, file) != static_cast<size_t>(length))
+	{
+		fclose(file);
+		logNote("Russian terminal override read failed: %s", path.c_str());
+		return NULL;
+	}
+	fclose(file);
+
+	std::vector<char> normalized;
+	normalized.reserve(file_data.size());
+	for (size_t i = 0; i < file_data.size(); ++i)
+	{
+		if (file_data[i] == '\r')
+		{
+			normalized.push_back(MAC_LINE_END);
+			if (i + 1 < file_data.size() && file_data[i + 1] == '\n')
+			{
+				++i;
+			}
+		}
+		else if (file_data[i] == '\n')
+		{
+			normalized.push_back(MAC_LINE_END);
+		}
+		else
+		{
+			normalized.push_back(file_data[i]);
+		}
+	}
+
+	logNote("Russian terminal override loaded: %s (%ld bytes)", path.c_str(), length);
+	return compile_marathon_terminal(normalized.data(), static_cast<short>(normalized.size()));
+}
+
+static uint16 read_be16_from_file(FILE *file)
+{
+	uint8 bytes[2];
+	if (fread(bytes, 1, 2, file) != 2) return 0;
+	return (uint16(bytes[0]) << 8) | uint16(bytes[1]);
+}
+
+static bool load_packed_russian_map_terminal(const std::string& path, terminal_text_t *terminal_text)
+{
+	FILE *file = fopen(path.c_str(), "rb");
+	if (!file)
+	{
+		return false;
+	}
+
+	uint16 total_length = read_be16_from_file(file);
+	uint16 flags = read_be16_from_file(file);
+	uint16 lines_per_page = read_be16_from_file(file);
+	uint16 grouping_count = read_be16_from_file(file);
+	uint16 font_changes_count = read_be16_from_file(file);
+
+	if (total_length < SIZEOF_static_preprocessed_terminal_data)
+	{
+		fclose(file);
+		logNote("Russian map terminal override has invalid header: %s", path.c_str());
+		return false;
+	}
+
+	std::vector<terminal_groupings> groups;
+	groups.reserve(grouping_count);
+	for (int i = 0; i < grouping_count; ++i)
+	{
+		terminal_groupings group;
+		group.flags = int16(read_be16_from_file(file));
+		group.type = int16(read_be16_from_file(file));
+		group.permutation = int16(read_be16_from_file(file));
+		group.start_index = int16(read_be16_from_file(file));
+		group.length = int16(read_be16_from_file(file));
+		group.maximum_line_count = int16(read_be16_from_file(file));
+		groups.push_back(group);
+	}
+
+	std::vector<text_face_data> font_changes;
+	font_changes.reserve(font_changes_count);
+	for (int i = 0; i < font_changes_count; ++i)
+	{
+		text_face_data face;
+		face.index = int16(read_be16_from_file(file));
+		face.face = int16(read_be16_from_file(file));
+		face.color = int16(read_be16_from_file(file));
+		font_changes.push_back(face);
+	}
+
+	const int text_length = total_length
+		- SIZEOF_static_preprocessed_terminal_data
+		- grouping_count * SIZEOF_terminal_groupings
+		- font_changes_count * SIZEOF_text_face_data;
+	if (text_length < 0)
+	{
+		fclose(file);
+		logNote("Russian map terminal override has invalid text length: %s", path.c_str());
+		return false;
+	}
+
+	std::vector<uint8> text(text_length);
+	if (text_length > 0 && fread(text.data(), 1, text_length, file) != static_cast<size_t>(text_length))
+	{
+		fclose(file);
+		logNote("Russian map terminal override read failed: %s", path.c_str());
+		return false;
+	}
+
+	fclose(file);
+
+	for (std::vector<terminal_groupings>::const_iterator it = groups.begin(); it != groups.end(); ++it)
+	{
+		if (it->start_index < 0 || it->length < 0 || it->start_index + it->length > text_length)
+		{
+			logNote("Russian map terminal override has invalid text range: %s", path.c_str());
+			return false;
+		}
+	}
+
+	text.push_back(0);
+
+	terminal_text->flags = flags & ~_text_is_encoded_flag;
+	terminal_text->lines_per_page = int16(lines_per_page);
+	terminal_text->groupings = groups;
+	terminal_text->font_changes = font_changes;
+	terminal_text->text = text;
+
+	if (!terminal_text->groupings.empty())
+	{
+		calculate_maximum_lines_for_groups(&terminal_text->groupings[0], terminal_text->groupings.size(),
+			reinterpret_cast<char*>(terminal_text->text.data()));
+	}
+
+	logNote("Russian map terminal override loaded: %s", path.c_str());
+	return true;
+}
+
+static void apply_russian_map_terminal_override(short terminal_id, terminal_text_t *terminal_text)
+{
+	static int last_level = NONE;
+	static std::vector<bool> checked;
+
+	if (!dynamic_world || terminal_id < 0)
+	{
+		return;
+	}
+
+	const int level = dynamic_world->current_level_number;
+	if (level != last_level || checked.size() != map_terminal_text.size())
+	{
+		last_level = level;
+		checked.assign(map_terminal_text.size(), false);
+	}
+
+	if (terminal_id >= static_cast<int>(checked.size()) || checked[terminal_id])
+	{
+		return;
+	}
+	checked[terminal_id] = true;
+
+	char filename[64];
+	snprintf(filename, sizeof(filename), "level_%02d_terminal_%02d.term", level, terminal_id);
+
+	const char *scenario_dir =
+		strcmp(A1_VITA_PROFILE_ID, "marathon2") == 0 ? "Marathon2" :
+		strcmp(A1_VITA_PROFILE_ID, "marathon-infinity") == 0 ? "Infinity" :
+		NULL;
+	if (!scenario_dir)
+	{
+		return;
+	}
+
+	std::string path = std::string(A1_VITA_DATA_DIR) + "/Russian/" + scenario_dir + "/" + filename;
+	load_packed_russian_map_terminal(path, terminal_text);
+}
+
+static OpenedResourceFile RussianTerminalResources;
+static bool RussianTerminalResourcesChecked = false;
+
+static OpenedResourceFile *get_russian_terminal_resources()
+{
+	if (!RussianTerminalResourcesChecked)
+	{
+		RussianTerminalResourcesChecked = true;
+
+		FileSpecifier file;
+		std::string path = std::string(A1_VITA_DATA_DIR) + "/Russian.resources";
+		file.SetNameWithPath(path.c_str());
+		if (file.Exists())
+		{
+			file.Open(RussianTerminalResources);
+		}
+	}
+
+	return RussianTerminalResources.IsOpen() ? &RussianTerminalResources : NULL;
+}
+
 static terminal_text_t *get_indexed_terminal_data(
 	short id)
 {
@@ -1368,7 +1684,21 @@ static terminal_text_t *get_indexed_terminal_data(
 		else
 		{
 			LoadedResource rsrc;
-			if (ExternalResources.IsOpen())
+			terminal_text_t *russian_terminal = load_russian_terminal_text_file(id);
+			if (russian_terminal)
+			{
+				resource_terminal.reset(russian_terminal);
+				resource_terminal_id = id;
+				return resource_terminal.get();
+			}
+
+			OpenedResourceFile *russian_resources = get_russian_terminal_resources();
+			if (russian_resources && russian_resources->IsOpen())
+			{
+				russian_resources->Get('t', 'e', 'r', 'm', id, rsrc);
+			}
+
+			if (!rsrc.IsLoaded() && ExternalResources.IsOpen())
 			{
 				ExternalResources.Get('t', 'e', 'r', 'm', id, rsrc);
 			}
@@ -1391,6 +1721,8 @@ static terminal_text_t *get_indexed_terminal_data(
 	}
 
 	terminal_text_t *t = &map_terminal_text[id];
+
+	apply_russian_map_terminal_override(id, t);
 
 	// Note that this will only decode the text once
 	decode_text(t);

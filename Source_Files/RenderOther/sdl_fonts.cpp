@@ -53,6 +53,7 @@ using std::map;
 #include "CourierPrimeBold.h"
 #include "CourierPrimeItalic.h"
 #include "CourierPrimeBoldItalic.h"
+#include "DejaVuLGCSansCondensedBold.h"
 
 // Global variables
 typedef pair<int, int> id_and_size_t;
@@ -84,7 +85,8 @@ static builtin_font_t builtin_fontspecs[] = {
 	{ "Courier Prime", courier_prime, sizeof(courier_prime) },
 	{ "Courier Prime Bold", courier_prime_bold, sizeof(courier_prime_bold) },
 	{ "Courier Prime Italic", courier_prime_italic, sizeof(courier_prime_italic) },
-	{" Courier Prime Bold Italic", courier_prime_bold_italic, sizeof(courier_prime_bold_italic) }
+	{" Courier Prime Bold Italic", courier_prime_bold_italic, sizeof(courier_prime_bold_italic) },
+	{ "DejaVu LGC Sans Condensed Bold", dejavu_lgc_sans_condensed_bold, sizeof(dejavu_lgc_sans_condensed_bold) }
 };
 
 #define NUMBER_OF_BUILTIN_FONTS sizeof(builtin_fontspecs) / sizeof(builtin_font)
