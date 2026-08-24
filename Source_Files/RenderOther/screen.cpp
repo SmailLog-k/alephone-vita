@@ -3001,7 +3001,8 @@ void MainScreenUpdateRects(size_t count, const SDL_Rect *rects)
 	uint8 liquid_tint_g = 0;
 	uint8 liquid_tint_b = 0;
 	uint8 liquid_tint_a = 0;
-	if (vita_get_liquid_tint(&liquid_tint_r, &liquid_tint_g, &liquid_tint_b, &liquid_tint_a) &&
+	if (get_game_state() == _game_in_progress &&
+		vita_get_liquid_tint(&liquid_tint_r, &liquid_tint_g, &liquid_tint_b, &liquid_tint_a) &&
 		liquid_tint_a > 0 &&
 		world_view &&
 		!world_view->terminal_mode_active &&
@@ -3009,6 +3010,24 @@ void MainScreenUpdateRects(size_t count, const SDL_Rect *rects)
 	{
 		SDL_SetRenderDrawBlendMode(main_render, SDL_BLENDMODE_BLEND);
 		SDL_SetRenderDrawColor(main_render, liquid_tint_r, liquid_tint_g, liquid_tint_b, liquid_tint_a);
+		SDL_Rect tint_rect = Screen::instance()->view_rect();
+		SDL_RenderFillRect(main_render, &tint_rect);
+		SDL_SetRenderDrawBlendMode(main_render, SDL_BLENDMODE_NONE);
+	}
+
+	uint8 bonus_tint_r = 0;
+	uint8 bonus_tint_g = 0;
+	uint8 bonus_tint_b = 0;
+	uint8 bonus_tint_a = 0;
+	if (get_game_state() == _game_in_progress &&
+		vita_get_bonus_tint(&bonus_tint_r, &bonus_tint_g, &bonus_tint_b, &bonus_tint_a) &&
+		bonus_tint_a > 0 &&
+		world_view &&
+		!world_view->terminal_mode_active &&
+		!world_view->overhead_map_active)
+	{
+		SDL_SetRenderDrawBlendMode(main_render, SDL_BLENDMODE_BLEND);
+		SDL_SetRenderDrawColor(main_render, bonus_tint_r, bonus_tint_g, bonus_tint_b, bonus_tint_a);
 		SDL_Rect tint_rect = Screen::instance()->view_rect();
 		SDL_RenderFillRect(main_render, &tint_rect);
 		SDL_SetRenderDrawBlendMode(main_render, SDL_BLENDMODE_NONE);

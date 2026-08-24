@@ -152,6 +152,33 @@ static int FadeEffectDelay = 0;
 
 #ifdef VITA
 static short vita_liquid_fade_effect_type = NONE;
+static uint64_t vita_bonus_tint_start_tick = 0;
+static uint64_t vita_bonus_tint_duration = 0;
+
+static void vita_start_bonus_tint()
+{
+	vita_bonus_tint_start_tick = machine_tick_count();
+	vita_bonus_tint_duration = MACHINE_TICKS_PER_SECOND / 4;
+}
+
+bool vita_get_bonus_tint(uint8 *red, uint8 *green, uint8 *blue, uint8 *alpha)
+{
+	if (!vita_bonus_tint_duration)
+		return false;
+
+	uint64_t elapsed = machine_tick_count() - vita_bonus_tint_start_tick;
+	if (elapsed >= vita_bonus_tint_duration)
+	{
+		vita_bonus_tint_duration = 0;
+		return false;
+	}
+
+	*red = 0;
+	*green = 255;
+	*blue = 0;
+	*alpha = (uint8)(72 * (vita_bonus_tint_duration - elapsed) / vita_bonus_tint_duration);
+	return *alpha > 0;
+}
 
 bool vita_get_liquid_tint(uint8 *red, uint8 *green, uint8 *blue, uint8 *alpha)
 {
@@ -414,6 +441,13 @@ void explicit_start_fade(
 	struct color_table *animated_color_table,
 	bool game_in_progress)
 {
+#ifdef VITA
+	if (game_in_progress && type == _fade_bonus)
+	{
+		vita_start_bonus_tint();
+		return;
+	}
+#endif
 	struct fade_definition *definition= get_fade_definition(type);
 	// LP change: idiot-proofing
 	if (!definition) return;

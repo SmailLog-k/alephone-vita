@@ -1433,13 +1433,28 @@ static void process_event(const SDL_Event &event)
 		break;
 	
 	case SDL_CONTROLLERBUTTONDOWN:
+		joystick_button_pressed(event.cbutton.which, event.cbutton.button, true);
+#ifdef VITA
+		if (get_game_state() == _display_main_menu &&
+			joystick_button_down(SDL_CONTROLLER_BUTTON_LEFTSHOULDER) &&
+			joystick_button_down(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER) &&
+			event.cbutton.button == SDL_CONTROLLER_BUTTON_A)
+		{
+			if (!interface_fade_finished())
+				stop_interface_fade();
+			process_main_menu_highlight_select(true);
+			joystick_button_pressed(event.cbutton.which, SDL_CONTROLLER_BUTTON_A, false);
+			joystick_button_pressed(event.cbutton.which, SDL_CONTROLLER_BUTTON_LEFTSHOULDER, false);
+			joystick_button_pressed(event.cbutton.which, SDL_CONTROLLER_BUTTON_RIGHTSHOULDER, false);
+			break;
+		}
+#endif
 		if (get_game_state() == _game_in_progress && !get_keyboard_controller_status())
 		{
 			resume_game();
 		}
 		else
 		{
-			joystick_button_pressed(event.cbutton.which, event.cbutton.button, true);
 			SDL_Event e2;
 			memset(&e2, 0, sizeof(SDL_Event));
 			e2.type = SDL_KEYDOWN;

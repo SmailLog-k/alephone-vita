@@ -100,6 +100,10 @@ void joystick_button_pressed(int instance_id, int button, bool down) {
 		button_values[button] = down;
 }
 
+bool joystick_button_down(int button) {
+	return button >= 0 && button < NUM_SDL_JOYSTICK_BUTTONS && button_values[button];
+}
+
 enum {
 	_flags_yaw,
 	_flags_pitch,

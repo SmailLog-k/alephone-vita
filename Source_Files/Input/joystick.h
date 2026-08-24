@@ -44,6 +44,7 @@ void joystick_buttons_become_keypresses(Uint8* ioKeyMap);
 int process_joystick_axes(int flags);
 void joystick_axis_moved(int instance_id, int axis, int value);
 void joystick_button_pressed(int instance_id, int button, bool down);
+bool joystick_button_down(int button);
 void joystick_added(int device_index);
 bool joystick_removed(int instance_id);
 
