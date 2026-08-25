@@ -282,6 +282,7 @@ private:
 
 // Pointer to top-level dialog, NULL = no dialog active
 extern dialog *top_dialog;
+bool sdl_dialog_active(void);
 
 // Sounds
 enum {

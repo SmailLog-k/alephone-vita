@@ -69,6 +69,22 @@
 
 // Global variables
 dialog *top_dialog = NULL;
+static int active_dialog_count = 0;
+
+bool sdl_dialog_active(void)
+{
+	return active_dialog_count > 0;
+}
+
+struct dialog_activity_scope
+{
+	dialog_activity_scope() { ++active_dialog_count; }
+	~dialog_activity_scope()
+	{
+		if (active_dialog_count > 0)
+			--active_dialog_count;
+	}
+};
 
 static SDL_Surface *dialog_surface = NULL;
 
@@ -2231,6 +2247,8 @@ void dialog::event(SDL_Event &e)
 
 int dialog::run(bool intro_exit_sounds)
 {
+	dialog_activity_scope active_dialog;
+
 	// Put dialog on screen
 	start(intro_exit_sounds);
 

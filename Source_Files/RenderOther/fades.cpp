@@ -152,8 +152,66 @@ static int FadeEffectDelay = 0;
 
 #ifdef VITA
 static short vita_liquid_fade_effect_type = NONE;
+static short vita_damage_tint_fade_type = NONE;
+static uint64_t vita_damage_tint_start_tick = 0;
+static uint64_t vita_damage_tint_duration = 0;
 static uint64_t vita_bonus_tint_start_tick = 0;
 static uint64_t vita_bonus_tint_duration = 0;
+
+void vita_clear_screen_tints(void)
+{
+	vita_liquid_fade_effect_type = NONE;
+	vita_damage_tint_fade_type = NONE;
+	vita_damage_tint_start_tick = 0;
+	vita_damage_tint_duration = 0;
+	vita_bonus_tint_start_tick = 0;
+	vita_bonus_tint_duration = 0;
+}
+
+static void vita_start_damage_tint(short type)
+{
+	vita_damage_tint_fade_type = type;
+	vita_damage_tint_start_tick = machine_tick_count();
+	vita_damage_tint_duration = 3 * MACHINE_TICKS_PER_SECOND;
+}
+
+bool vita_get_damage_tint(uint8 *red, uint8 *green, uint8 *blue, uint8 *alpha)
+{
+	if (!vita_damage_tint_duration || vita_damage_tint_fade_type == NONE)
+		return false;
+
+	uint64_t elapsed = machine_tick_count() - vita_damage_tint_start_tick;
+	if (elapsed >= vita_damage_tint_duration)
+	{
+		vita_damage_tint_duration = 0;
+		vita_damage_tint_fade_type = NONE;
+		return false;
+	}
+
+	uint8 base_alpha = 0;
+	switch (vita_damage_tint_fade_type)
+	{
+		case _fade_long_orange:
+			*red = 255;
+			*green = 128;
+			*blue = 0;
+			base_alpha = 72;
+			break;
+		case _fade_long_green:
+			*red = 0;
+			*green = 255;
+			*blue = 0;
+			base_alpha = 72;
+			break;
+		default:
+			vita_damage_tint_duration = 0;
+			vita_damage_tint_fade_type = NONE;
+			return false;
+	}
+
+	*alpha = (uint8)(base_alpha * (vita_damage_tint_duration - elapsed) / vita_damage_tint_duration);
+	return *alpha > 0;
+}
 
 static void vita_start_bonus_tint()
 {
@@ -442,6 +500,11 @@ void explicit_start_fade(
 	bool game_in_progress)
 {
 #ifdef VITA
+	if (game_in_progress && (type == _fade_long_orange || type == _fade_long_green))
+	{
+		vita_start_damage_tint(type);
+		return;
+	}
 	if (game_in_progress && type == _fade_bonus)
 	{
 		vita_start_bonus_tint();
@@ -499,6 +562,10 @@ void explicit_start_fade(
 void stop_fade(
 	void)
 {
+#ifdef VITA
+	vita_clear_screen_tints();
+#endif
+
 	if (FADE_IS_ACTIVE(fade))
 	{
 		struct fade_definition* definition = get_fade_definition(fade->type);

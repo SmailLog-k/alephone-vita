@@ -121,7 +121,9 @@ void set_fade_effect(short type);
 
 #ifdef VITA
 bool vita_get_liquid_tint(uint8 *red, uint8 *green, uint8 *blue, uint8 *alpha);
+bool vita_get_damage_tint(uint8 *red, uint8 *green, uint8 *blue, uint8 *alpha);
 bool vita_get_bonus_tint(uint8 *red, uint8 *green, uint8 *blue, uint8 *alpha);
+void vita_clear_screen_tints(void);
 #endif
 
 void gamma_correct_color_table(struct color_table *uncorrected_color_table, struct color_table *corrected_color_table, short gamma_level);

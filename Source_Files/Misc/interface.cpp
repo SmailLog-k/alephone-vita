@@ -974,6 +974,12 @@ bool check_level_change(
 void pause_game(
 	void)
 {
+#ifdef VITA
+	stop_fade();
+	set_fade_effect(NONE);
+	vita_clear_screen_tints();
+#endif
+
 	set_keyboard_controller_status(false);
 	show_cursor();
 	if (!game_is_networked && OpenALManager::Get()) OpenALManager::Get()->Pause(true);
@@ -997,7 +1003,6 @@ void draw_menu_button_for_command(
 {
 #if defined(VITA) && !A1_VITA_M1_COCKPIT
 	update_interface_display();
-	vita_draw_menu_selection_final_overlay(index);
 	sleep_for_machine_ticks(MACHINE_TICKS_PER_SECOND / 18);
 	return;
 #endif
@@ -1256,6 +1261,8 @@ extern SDL_Surface *draw_surface;	// from screen_drawing.cpp
 //void draw_intro_screen(void);		// from screen.cpp
 
 #ifdef VITA
+static bool vita_suppress_main_menu_present_overlay = false;
+
 static const char *vita_menu_item_label(short menu_item)
 {
 	switch (menu_item)
@@ -1409,7 +1416,11 @@ static void vita_draw_menu_selection_final_overlay(short menu_item)
 
 void vita_draw_main_menu_present_overlay(void)
 {
+	if (vita_suppress_main_menu_present_overlay)
+		return;
 	if (game_state.state != _display_main_menu)
+		return;
+	if (sdl_dialog_active())
 		return;
 
 #if A1_VITA_M1_COCKPIT
@@ -1458,6 +1469,15 @@ static void draw_powered_by_aleph_one(bool pressed)
 void display_main_menu(
 	void)
 {
+#ifdef VITA
+	vita_suppress_main_menu_present_overlay = true;
+	stop_fade();
+	set_fade_effect(NONE);
+	vita_clear_screen_tints();
+	clear_screen(true);
+	vita_suppress_main_menu_present_overlay = false;
+#endif
+
 	game_state.state= _display_main_menu;
 	game_state.current_screen= 0;
 	game_state.phase= TICKS_UNTIL_DEMO_STARTS;
@@ -2932,6 +2952,14 @@ static void start_game(
 {
 	/* Change our menus.. */
 	toggle_menus(true);
+
+#ifdef VITA
+	stop_fade();
+	set_fade_effect(NONE);
+	vita_clear_screen_tints();
+	vita_suppress_main_menu_present_overlay = true;
+	clear_screen(true);
+#endif
 	
 	// LP change: reset screen so that extravision will not be persistent
 	reset_screen();
@@ -2965,6 +2993,9 @@ static void start_game(
 	game_state.last_ticks_on_idle= machine_tick_count();
 	game_state.user= user;
 	game_state.flags= 0;
+#ifdef VITA
+	vita_suppress_main_menu_present_overlay = false;
+#endif
 
 	assert((!changing_level&&!get_keyboard_controller_status()) || (changing_level && get_keyboard_controller_status()));
 	if(!changing_level)

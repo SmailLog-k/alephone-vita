@@ -2994,6 +2994,9 @@ void MainScreenUpdateRects(size_t count, const SDL_Rect *rects)
 	{
 		SDL_UpdateTexture(main_texture, NULL, main_surface->pixels, main_surface->pitch);
 	}
+#ifdef VITA
+	SDL_SetRenderDrawColor(main_render, 0, 0, 0, 255);
+#endif
 	SDL_RenderClear(main_render);
 	SDL_RenderCopy(main_render, main_texture, NULL, NULL);
 #ifdef VITA
@@ -3010,6 +3013,24 @@ void MainScreenUpdateRects(size_t count, const SDL_Rect *rects)
 	{
 		SDL_SetRenderDrawBlendMode(main_render, SDL_BLENDMODE_BLEND);
 		SDL_SetRenderDrawColor(main_render, liquid_tint_r, liquid_tint_g, liquid_tint_b, liquid_tint_a);
+		SDL_Rect tint_rect = Screen::instance()->view_rect();
+		SDL_RenderFillRect(main_render, &tint_rect);
+		SDL_SetRenderDrawBlendMode(main_render, SDL_BLENDMODE_NONE);
+	}
+
+	uint8 damage_tint_r = 0;
+	uint8 damage_tint_g = 0;
+	uint8 damage_tint_b = 0;
+	uint8 damage_tint_a = 0;
+	if (get_game_state() == _game_in_progress &&
+		vita_get_damage_tint(&damage_tint_r, &damage_tint_g, &damage_tint_b, &damage_tint_a) &&
+		damage_tint_a > 0 &&
+		world_view &&
+		!world_view->terminal_mode_active &&
+		!world_view->overhead_map_active)
+	{
+		SDL_SetRenderDrawBlendMode(main_render, SDL_BLENDMODE_BLEND);
+		SDL_SetRenderDrawColor(main_render, damage_tint_r, damage_tint_g, damage_tint_b, damage_tint_a);
 		SDL_Rect tint_rect = Screen::instance()->view_rect();
 		SDL_RenderFillRect(main_render, &tint_rect);
 		SDL_SetRenderDrawBlendMode(main_render, SDL_BLENDMODE_NONE);

@@ -1442,7 +1442,7 @@ static void process_event(const SDL_Event &event)
 		{
 			if (!interface_fade_finished())
 				stop_interface_fade();
-			process_main_menu_highlight_select(true);
+			do_menu_item_command(mInterface, iPlaySingletonLevel, true);
 			joystick_button_pressed(event.cbutton.which, SDL_CONTROLLER_BUTTON_A, false);
 			joystick_button_pressed(event.cbutton.which, SDL_CONTROLLER_BUTTON_LEFTSHOULDER, false);
 			joystick_button_pressed(event.cbutton.which, SDL_CONTROLLER_BUTTON_RIGHTSHOULDER, false);
