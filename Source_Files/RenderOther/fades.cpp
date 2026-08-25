@@ -172,7 +172,58 @@ static void vita_start_damage_tint(short type)
 {
 	vita_damage_tint_fade_type = type;
 	vita_damage_tint_start_tick = machine_tick_count();
-	vita_damage_tint_duration = 3 * MACHINE_TICKS_PER_SECOND;
+
+	switch (type)
+	{
+		case _fade_static:
+			vita_damage_tint_duration = (3 * MACHINE_TICKS_PER_SECOND) / 8;
+			break;
+		case _fade_big_red:
+		case _fade_dodge_purple:
+			vita_damage_tint_duration = (3 * MACHINE_TICKS_PER_SECOND) / 4;
+			break;
+		case _fade_burn_cyan:
+			vita_damage_tint_duration = MACHINE_TICKS_PER_SECOND;
+			break;
+		case _fade_dodge_yellow:
+			vita_damage_tint_duration = (3 * MACHINE_TICKS_PER_SECOND) / 2;
+			break;
+		case _fade_burn_green:
+			vita_damage_tint_duration = 2 * MACHINE_TICKS_PER_SECOND;
+			break;
+		case _fade_long_orange:
+		case _fade_long_green:
+			vita_damage_tint_duration = 3 * MACHINE_TICKS_PER_SECOND;
+			break;
+		default:
+			vita_damage_tint_duration = MACHINE_TICKS_PER_SECOND / 4;
+			break;
+	}
+}
+
+static bool vita_should_use_damage_tint(short type)
+{
+	switch (type)
+	{
+		case _fade_red:
+		case _fade_yellow:
+		case _fade_purple:
+		case _fade_cyan:
+		case _fade_white:
+		case _fade_orange:
+		case _fade_long_orange:
+		case _fade_long_green:
+		case _fade_static:
+		case _fade_negative:
+		case _fade_flicker_negative:
+		case _fade_dodge_purple:
+		case _fade_burn_cyan:
+		case _fade_dodge_yellow:
+		case _fade_burn_green:
+			return true;
+		default:
+			return false;
+	}
 }
 
 bool vita_get_damage_tint(uint8 *red, uint8 *green, uint8 *blue, uint8 *alpha)
@@ -191,17 +242,65 @@ bool vita_get_damage_tint(uint8 *red, uint8 *green, uint8 *blue, uint8 *alpha)
 	uint8 base_alpha = 0;
 	switch (vita_damage_tint_fade_type)
 	{
+		case _fade_red:
+		case _fade_big_red:
+			*red = 255;
+			*green = 0;
+			*blue = 0;
+			base_alpha = (vita_damage_tint_fade_type == _fade_big_red) ? 104 : 80;
+			break;
+		case _fade_yellow:
+		case _fade_big_yellow:
+		case _fade_dodge_yellow:
+			*red = 255;
+			*green = 255;
+			*blue = 0;
+			base_alpha = 72;
+			break;
+		case _fade_purple:
+		case _fade_dodge_purple:
+			*red = 215;
+			*green = 107;
+			*blue = 255;
+			base_alpha = 72;
+			break;
+		case _fade_cyan:
+		case _fade_burn_cyan:
+			*red = 169;
+			*green = 255;
+			*blue = 224;
+			base_alpha = 72;
+			break;
+		case _fade_white:
+		case _fade_big_white:
+		case _fade_negative:
+		case _fade_big_negative:
+		case _fade_flicker_negative:
+			*red = 255;
+			*green = 255;
+			*blue = 255;
+			base_alpha = 72;
+			break;
+		case _fade_orange:
 		case _fade_long_orange:
 			*red = 255;
 			*green = 128;
 			*blue = 0;
 			base_alpha = 72;
 			break;
+		case _fade_green:
 		case _fade_long_green:
+		case _fade_burn_green:
 			*red = 0;
 			*green = 255;
 			*blue = 0;
 			base_alpha = 72;
+			break;
+		case _fade_static:
+			*red = 255;
+			*green = 255;
+			*blue = 255;
+			base_alpha = 64;
 			break;
 		default:
 			vita_damage_tint_duration = 0;
@@ -209,6 +308,11 @@ bool vita_get_damage_tint(uint8 *red, uint8 *green, uint8 *blue, uint8 *alpha)
 			return false;
 	}
 
+	if (vita_damage_tint_fade_type == _fade_static ||
+		vita_damage_tint_fade_type == _fade_flicker_negative)
+	{
+		base_alpha = (uint8)(base_alpha + ((machine_tick_count() & 1) ? 20 : 0));
+	}
 	*alpha = (uint8)(base_alpha * (vita_damage_tint_duration - elapsed) / vita_damage_tint_duration);
 	return *alpha > 0;
 }
@@ -500,7 +604,7 @@ void explicit_start_fade(
 	bool game_in_progress)
 {
 #ifdef VITA
-	if (game_in_progress && (type == _fade_long_orange || type == _fade_long_green))
+	if (game_in_progress && vita_should_use_damage_tint(type))
 	{
 		vita_start_damage_tint(type);
 		return;
