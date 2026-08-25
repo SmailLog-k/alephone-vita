@@ -2,9 +2,14 @@
 
 ## Summary
 
-The PS Vita port is currently at its first public release-candidate stage.
+The PS Vita port is currently playable across the Marathon Trilogy. Current
+public builds are release candidates while long full-playthrough testing
+continues for Marathon 2 and Marathon Infinity.
 
-Marathon 1 has been completed 100% on real PS Vita hardware. Marathon 2 and Marathon Infinity are playable on real hardware, but full-playthrough testing is still in progress.
+Marathon 1 has been completed 100% on real PS Vita hardware. Marathon 2 and
+Marathon Infinity are playable on real hardware; their levels are currently
+loading and playing correctly through the built-in level selection menu, but
+full linear playthrough testing is still in progress.
 
 ## Confirmed working
 
@@ -14,15 +19,19 @@ Marathon 1 has been completed 100% on real PS Vita hardware. Marathon 2 and Mara
 - Installs and launches on PS Vita with separate title IDs per game profile.
 - Loads game data from profile-specific directories under `ux0:data/AlephOne/`.
 - Runs Marathon 1 gameplay on real hardware; full completion confirmed.
-- Runs Marathon 2 gameplay on real hardware; full completion testing pending.
-- Runs Marathon Infinity gameplay on real hardware; full completion testing pending.
+- Runs Marathon 2 gameplay on real hardware; levels load and play through the
+  built-in level selection menu; full completion testing pending.
+- Runs Marathon Infinity gameplay on real hardware; levels load and play through
+  the built-in level selection menu; full completion testing pending.
 - Fullscreen 960x544 output.
 - Software renderer path.
 - Vita clock/performance setup.
 - Vita controller mapping.
 - Classic HUD/cockpit rendering path adapted for Vita software rendering.
 - Marathon 1 classic HUD is restored and has been used through a full completion test.
-- Marathon 2 and Marathon Infinity gameplay HUD and automap HUD paths are ready for longer gameplay testing.
+- Marathon 2 and Marathon Infinity gameplay HUD, automap, terminal, menu, and
+  full-screen fade rendering paths are adapted and ready for longer gameplay
+  regression testing.
 - FPS overlay and performance logging are optional diagnostic build features.
 
 ## Current performance
@@ -37,8 +46,11 @@ Marathon 1's classic HUD/cockpit path uses Vita-specific dirty-rectangle updates
 
 ## Current limitations
 
-- Original full Aleph One HUD behavior is not fully verified across every Marathon 2 and Marathon Infinity level yet.
-- Marathon 2 main menu uses a temporary Vita-side selection overlay because the original pressed-button redraw path is unreliable on Vita.
+- Marathon 2 and Marathon Infinity have not yet had full start-to-finish
+  completion tests on real hardware.
+- Marathon 2 and Marathon Infinity manuals are still pending.
+- Marathon 2 and Marathon Infinity main menus use a Vita-side selection overlay
+  because the original pressed-button redraw path is unreliable on Vita.
 - OpenGL rendering is disabled for the Vita target.
 - Lua HUD is disabled for the Vita target.
 - Network play is not implemented/tested for Vita.
@@ -61,8 +73,10 @@ Game data is intentionally not included in the engine repository.
 
 ## Next engineering tasks
 
-1. Continue full-playthrough testing for Marathon 2 and Marathon Infinity.
-2. Continue long-session regression testing across all three game VPKs.
-3. Replace temporary Vita-side menu selection handling where the original menu redraw path can be made reliable.
-4. Continue performance tuning for heavier scenes.
-5. Expand profile documentation for future third-party Aleph One scenarios.
+1. Finish manual pages for Marathon 2 and Marathon Infinity.
+2. Continue full-playthrough testing for Marathon 2 and Marathon Infinity.
+3. Continue long-session regression testing across all three game VPKs.
+4. Replace Vita-side menu selection handling where the original menu redraw path
+   can be made reliable.
+5. Continue performance tuning for heavier scenes.
+6. Expand profile documentation for future third-party Aleph One scenarios.

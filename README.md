@@ -4,11 +4,17 @@ This repository provides a native PlayStation Vita port of the Aleph One engine,
 
 ## Current status
 
-First public release candidate for the PS Vita Marathon Trilogy engine port.
+Playable PS Vita Marathon Trilogy engine port. Current public builds are release
+candidates while long full-playthrough testing continues for Marathon 2 and
+Marathon Infinity.
 
 - Marathon 1 is playable and has been completed 100% on real PS Vita hardware.
-- Marathon 2 is playable on real PS Vita hardware; full-playthrough testing is still in progress.
-- Marathon Infinity is playable on real PS Vita hardware; full-playthrough testing is still in progress.
+- Marathon 2 is playable on real PS Vita hardware. Levels are currently loading
+  and playing correctly through the built-in level selection menu; full linear
+  playthrough testing is still in progress.
+- Marathon Infinity is playable on real PS Vita hardware. Levels are currently
+  loading and playing correctly through the built-in level selection menu; full
+  linear playthrough testing is still in progress.
 - The release model is three standalone game VPKs built from one shared Aleph One Vita engine codebase.
 - Software rendering is used; OpenGL and Lua HUD are disabled on Vita for performance.
 - Fullscreen 960x544 output is supported.
@@ -16,7 +22,13 @@ First public release candidate for the PS Vita Marathon Trilogy engine port.
 - PlayStation Vita controls are adapted and suitable for gameplay.
 - Networking and some desktop-only integrations are not currently part of the Vita target.
 - Underwater/liquid tint effects use a Vita-specific renderer overlay to avoid the original software-renderer frame-rate drop.
+- Classic HUD/cockpit, automap, terminal, menu, and full-screen fade rendering
+  paths are adapted for the Vita software renderer.
 - Marathon 1 classic HUD/cockpit rendering uses Vita-specific dirty-rectangle updates for playable performance on later levels.
+- Built-in level selection is available from the main menu with `L + R + Cross`
+  for testing and replay.
+- Manual pages are available for Marathon 1; Marathon 2 and Marathon Infinity
+  manuals are planned before the next polished release.
 
 This is an engine-port release. Original game data is not included.
 
@@ -43,7 +55,7 @@ Current Vita mapping:
 | Square | Automap |
 | Triangle | Recenter camera / View action |
 | D-pad | Weapon / Inventory / Map controls depending on game state |
-| Select | Scores |
+| Select | Unused in single-player / network stats |
 
 ## Vita application profiles and game data
 
