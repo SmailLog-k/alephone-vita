@@ -78,6 +78,7 @@ if ! cmp -s "$profile_header_new" "$profile_header"; then
         "$project_dir/Source_Files/Misc/interface.o" \
         "$project_dir/Source_Files/RenderOther/screen.o" \
         "$project_dir/Source_Files/RenderOther/game_window.o" \
+        "$project_dir/Source_Files/RenderOther/computer_interface.o" \
         "$project_dir/Source_Files/RenderOther/screen_drawing.o" \
         "$project_dir/Source_Files/CSeries/libcseries.a" \
         "$project_dir/Source_Files/Files/libfiles.a" \

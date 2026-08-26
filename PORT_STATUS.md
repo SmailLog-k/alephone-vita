@@ -2,81 +2,85 @@
 
 ## Summary
 
-The PS Vita port is currently playable across the Marathon Trilogy. Current
-public builds are release candidates while long full-playthrough testing
-continues for Marathon 2 and Marathon Infinity.
+Aleph One Vita is playable across the complete Marathon Trilogy on real PlayStation Vita hardware. The current release provides three standalone game VPKs built from one shared Vita-optimized Aleph One engine codebase.
 
-Marathon 1 has been completed 100% on real PS Vita hardware. Marathon 2 and
-Marathon Infinity are playable on real hardware; their levels are currently
-loading and playing correctly through the built-in level selection menu, but
-full linear playthrough testing is still in progress.
+The core Vita port implementation for the current release scope is complete. Remaining work is focused on long-form playthrough validation and release QA.
+
+- **Marathon** has been completed 100% from start to finish on real PS Vita hardware.
+- **Marathon 2: Durandal** is playable on real hardware. Its levels load and play correctly through the built-in level selection screen; a full linear playthrough is still in progress.
+- **Marathon Infinity** is playable on real hardware. Its levels load and play correctly through the built-in level selection screen; a full linear playthrough is still in progress.
 
 ## Confirmed working
 
 - Builds with VitaSDK in WSL/Linux.
-- Produces profile-specific VPKs and `eboot.bin`.
-- Produces three profile-specific game VPKs from one shared engine codebase.
-- Installs and launches on PS Vita with separate title IDs per game profile.
-- Loads game data from profile-specific directories under `ux0:data/AlephOne/`.
-- Runs Marathon 1 gameplay on real hardware; full completion confirmed.
-- Runs Marathon 2 gameplay on real hardware; levels load and play through the
-  built-in level selection menu; full completion testing pending.
-- Runs Marathon Infinity gameplay on real hardware; levels load and play through
-  the built-in level selection menu; full completion testing pending.
-- Fullscreen 960x544 output.
-- Software renderer path.
+- Produces three profile-specific game VPKs and `eboot.bin` from one shared engine codebase.
+- Installs and launches as three standalone LiveArea applications with separate Title IDs.
+- Uses separate preferences, saves, logs, and data directories per game profile.
+- Loads original game data from profile-specific directories under `ux0:data/AlephOne/`.
+- Marathon full campaign completion confirmed on real PS Vita hardware.
+- Marathon 2 levels load and play correctly on real hardware through the built-in level selection screen.
+- Marathon Infinity levels load and play correctly on real hardware through the built-in level selection screen.
+- Fullscreen 960x544 widescreen output.
+- Vita-optimized software rendering path.
 - Vita clock/performance setup.
 - Vita controller mapping.
-- Classic HUD/cockpit rendering path adapted for Vita software rendering.
-- Marathon 1 classic HUD is restored and has been used through a full completion test.
-- Marathon 2 and Marathon Infinity gameplay HUD, automap, terminal, menu, and
-  full-screen fade rendering paths are adapted and ready for longer gameplay
-  regression testing.
-- FPS overlay and performance logging are optional diagnostic build features.
+- Classic HUD/cockpit rendering adapted for the Vita software renderer.
+- Automap, terminal, menu, and full-screen fade rendering adapted for Vita.
+- Previously identified persistent HUD and underwater/liquid frame-time drops resolved in current tested paths.
+- Built-in level selection from the main menu with `L + R + Cross`.
+- Cyrillic text rendering support in the Vita engine.
+- Optional Russian translation of all story terminal text for all three games.
+- Bilingual English/Russian LiveArea manuals for all three game VPKs.
 
 ## Current performance
 
-Real-device testing has shown playable performance across the Trilogy, with scene-dependent variation.
+The current Vita release is tuned around a 30 FPS target on real hardware.
 
-The largest early performance issue was the Lua/Enhanced HUD path. On Vita, Lua HUD rendering is currently disabled while classic/native rendering paths are adapted.
+The largest early performance bottleneck was the desktop Lua/Enhanced HUD renderer. That renderer produced severe frame-time spikes on Vita, so the supported Vita configuration now uses the classic HUD/cockpit through a dedicated optimized software-rendering path.
 
-The original persistent liquid fade path caused major frame-rate drops when fully underwater. Vita now skips that palette/fade path and draws liquid tint as a cheap renderer overlay during final presentation.
+The original persistent liquid fade path also caused major frame-rate drops when fully underwater. The Vita build replaces that path with a lightweight renderer overlay during final presentation.
 
-Marathon 1's classic HUD/cockpit path uses Vita-specific dirty-rectangle updates to avoid rescaling and blitting the entire HUD every frame.
+Marathon's classic HUD/cockpit uses Vita-specific dirty-rectangle updates so the complete HUD does not need to be rescaled and blitted every frame.
 
-## Current limitations
+The persistent Vita-specific FPS drops previously identified in the HUD and liquid rendering paths are no longer present in the current tested build.
 
-- Marathon 2 and Marathon Infinity have not yet had full start-to-finish
-  completion tests on real hardware.
-- Marathon 2 and Marathon Infinity manuals are still pending.
-- Marathon 2 and Marathon Infinity main menus use a Vita-side selection overlay
-  because the original pressed-button redraw path is unreliable on Vita.
-- OpenGL rendering is disabled for the Vita target.
-- Lua HUD is disabled for the Vita target.
-- Network play is not implemented/tested for Vita.
-- Game bubbles are installed directly as VPKs through VitaShell.
-- Profiling output is disabled by default in release builds and can be enabled for diagnostic builds.
+## Vita design choices
+
+These are intentional characteristics of the current Vita release:
+
+- The supported Vita renderer is the software renderer; OpenGL is not used.
+- The Vita build uses the optimized classic HUD/cockpit instead of the heavier Lua/Enhanced HUD renderer.
+- Marathon 2 and Marathon Infinity use a Vita-side menu selection overlay for reliable selection feedback.
+- The three games are installed directly as standalone VPKs through VitaShell.
+- Normal release builds keep profiling overlays and performance log writes disabled.
+- Network play is not part of the current Vita release.
+
+## Release validation still in progress
+
+- Complete start-to-finish playthrough validation of Marathon 2.
+- Complete start-to-finish playthrough validation of Marathon Infinity.
+- Continued long-session regression testing across all three VPKs.
+
+The built-in level selection screen allows individual levels in Marathon 2 and Marathon Infinity to be loaded directly for targeted regression testing while the longer linear playthroughs continue.
 
 ## Data layout
 
 Game data is loaded from profile-specific directories:
 
 ```text
-ux0:data/AlephOne/ # Marathon 1 legacy layout
+ux0:data/AlephOne/                  # Marathon legacy layout
 ux0:data/AlephOne/Marathon2/
 ux0:data/AlephOne/MarathonInfinity/
 ```
 
-Required files are profile-specific. See `README.md` for the Steam Classic Marathon Trilogy layouts currently tested with this port.
+Required files are profile-specific. See `README.md` for the tested Steam Classic Marathon Trilogy layouts.
 
-Game data is intentionally not included in the engine repository.
+Game data is intentionally not included in the engine repository or game VPKs.
 
-## Next engineering tasks
+## Future work
 
-1. Finish manual pages for Marathon 2 and Marathon Infinity.
-2. Continue full-playthrough testing for Marathon 2 and Marathon Infinity.
-3. Continue long-session regression testing across all three game VPKs.
-4. Replace Vita-side menu selection handling where the original menu redraw path
-   can be made reliable.
-5. Continue performance tuning for heavier scenes.
-6. Expand profile documentation for future third-party Aleph One scenarios.
+After current release validation:
+
+1. Expand support for additional compatible Aleph One scenarios.
+2. Continue long-session regression testing and maintenance.
+

@@ -1254,6 +1254,17 @@ uint32 parse_keymap(void)
 					flags |= standard_key_definitions[i].action_flag;
 			}
 		}
+
+#ifdef VITA
+		/*
+		 * On Vita, D-pad up/down are intentionally shared between weapon cycling
+		 * during normal play and overhead-map zoom in the shell bindings.  When
+		 * the map is already open, keep those buttons dedicated to map zoom so
+		 * changing scale does not also change the selected weapon.
+		 */
+		if (player_controlling_game() && local_player && PLAYER_HAS_MAP_OPEN(local_player))
+			flags &= ~(_cycle_weapons_forward | _cycle_weapons_backward);
+#endif
 		
       // Post-process the keymap
 		struct special_flag_data *special = special_flags;
@@ -1478,5 +1489,4 @@ void execute_timer_tasks(uint64_t time)
 		}
 	}
 }
-
 

@@ -1,6 +1,6 @@
 # Building Aleph One for PS Vita
 
-These instructions describe the current WSL/Linux VitaSDK workflow used by this fork.
+These instructions describe the WSL/Linux VitaSDK workflow used by Aleph One Vita.
 
 ## Requirements
 
@@ -54,7 +54,11 @@ PKG_CONFIG_LIBDIR="$VITASDK/arm-vita-eabi/lib/pkgconfig" \
   --without-catch2
 ```
 
-## Build VPK
+`--disable-opengl` is intentional. The current Vita release uses the software renderer as its supported rendering path.
+
+## Build VPKs
+
+Build individual profiles:
 
 ```bash
 ./build-vita-vpk.sh pkg legacy
@@ -71,24 +75,62 @@ pkg/alephone_vita_infinity.vpk
 pkg/eboot.bin
 ```
 
-## Rebuild after source changes
-
-For normal development:
+Build all three release VPKs:
 
 ```bash
-./build-vita-vpk.sh pkg marathon1
+./build-vita-release.sh pkg-release
 ```
 
-The script removes the previous final executable before linking so source
-changes inside static libraries are picked up by `pkg/eboot.bin`.
+Release helper outputs:
 
-Use the profile name that matches the installed Vita app.
+```text
+pkg-release/games/alephone_vita_legacy.vpk
+pkg-release/games/alephone_vita_marathon2.vpk
+pkg-release/games/alephone_vita_infinity.vpk
+```
 
-For the current public Marathon 1 VPK, use the stable legacy profile:
+## Profile model
+
+All three game applications are built from one shared engine codebase.
+
+Profiles select game-specific Vita configuration such as:
+
+- Title ID;
+- application name;
+- data directory;
+- preferences and saves;
+- logs;
+- artwork and LiveArea assets;
+- Vita compatibility behavior.
+
+Profile Title IDs:
+
+```text
+legacy     -> ALEPH0001
+marathon2  -> ALEPH0002
+infinity   -> ALEPH0003
+```
+
+## Rebuild after source changes
+
+For normal development, build the profile that matches the installed Vita app.
+
+For Marathon, use the stable legacy profile:
 
 ```bash
 ./build-vita-vpk.sh pkg legacy
 ```
+
+The script removes the previous final executable before linking so source changes inside static libraries are picked up by `pkg/eboot.bin`.
+
+For Marathon 2 and Marathon Infinity:
+
+```bash
+./build-vita-vpk.sh pkg marathon2
+./build-vita-vpk.sh pkg infinity
+```
+
+## Diagnostic performance builds
 
 Diagnostic profiling can be enabled explicitly:
 
@@ -96,8 +138,7 @@ Diagnostic profiling can be enabled explicitly:
 VITA_PROFILE_PERF=1 ./build-vita-vpk.sh pkg legacy
 ```
 
-Release builds should leave `VITA_PROFILE_PERF` unset so the FPS overlay and
-`vita_perf.log` writes are disabled.
+Normal release builds should leave `VITA_PROFILE_PERF` unset so the FPS overlay and `vita_perf.log` writes remain disabled.
 
 ## Deploy to an installed Vita app
 
@@ -113,13 +154,7 @@ curl --ftp-method nocwd \
 
 `192.0.2.10` is only an example placeholder.
 
-Profile TitleIDs:
-
-```text
-legacy     -> ALEPH0001
-marathon2  -> ALEPH0002
-infinity   -> ALEPH0003
-```
+For iterative testing, upload the matching `eboot.bin` to the corresponding installed Title ID.
 
 ## Runtime data
 
@@ -131,23 +166,38 @@ ux0:data/AlephOne/Marathon2/
 ux0:data/AlephOne/MarathonInfinity/
 ```
 
-At minimum, the selected scenario must provide:
+Marathon intentionally uses the legacy root path `ux0:data/AlephOne/`.
+
+Required files are scenario/profile-specific. See the top-level `README.md` for the currently tested Steam Classic Marathon Trilogy layouts.
+
+Do not commit commercial or scenario game data to this engine repository. Use game data from a legally obtained copy or from a legal Aleph One scenario distribution.
+
+## Optional Russian translation data
+
+The Vita engine supports Cyrillic text rendering.
+
+Optional Russian terminal-text translation data is loaded from a `Russian/` folder inside the matching game data directory:
 
 ```text
-Map
-Shapes
-Images
-Sounds
+ux0:data/AlephOne/Russian/
+ux0:data/AlephOne/Marathon2/Russian/
+ux0:data/AlephOne/MarathonInfinity/Russian/
 ```
 
-Do not commit these files to this engine repository. Use game data from a
-legally obtained copy or from a legal Aleph One scenario distribution.
+Original game data is still required.
 
-## Release notes
+## Release checklist
 
 Before publishing a release build:
 
 - leave `VITA_PROFILE_PERF` unset unless intentionally publishing a diagnostic build;
-- verify that no scenario data or generated binaries are committed;
+- verify that no original scenario data or generated development binaries are committed;
 - test launch from a fresh Vita install;
-- test with each Marathon Trilogy scenario layout separately.
+- test each Marathon Trilogy profile with its own data layout;
+- verify the correct LiveArea icon and artwork for all three game VPKs;
+- open and verify the built-in LiveArea manual for all three games;
+- verify English and Russian manual pages;
+- verify optional Russian terminal text with the corresponding `Russian/` folder;
+- verify built-in level selection with `L + R + Cross`;
+- perform long-session regression testing on real PS Vita hardware.
+

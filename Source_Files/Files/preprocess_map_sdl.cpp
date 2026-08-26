@@ -104,7 +104,26 @@ void get_default_sounds_spec(FileSpecifier &file)
 
 bool get_default_music_spec(FileSpecifier &file)
 {
-	return get_default_spec(file, filenameMUSIC);
+	if (get_default_spec(file, filenameMUSIC))
+		return true;
+
+	// Steam's Classic Marathon 2 and Marathon Infinity releases ship the
+	// intro/menu music as Music.ogg, while the original filename table still
+	// names the default music file "Music".  Level music can still work via
+	// scripts/playlists, so keep the exact-name lookup first and only fall back
+	// to common stream extensions for the default intro music.
+	if (get_default_spec(file, "Music.ogg"))
+		return true;
+	if (get_default_spec(file, "Music.mp3"))
+		return true;
+	if (get_default_spec(file, "Music.wav"))
+		return true;
+	if (get_default_spec(file, "Music.aif"))
+		return true;
+	if (get_default_spec(file, "Music.aiff"))
+		return true;
+
+	return false;
 }
 
 bool get_default_theme_spec(FileSpecifier &file)
